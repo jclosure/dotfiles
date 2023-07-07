@@ -8,5 +8,7 @@ Sane command-line with:
 Installation
 
 ```sh
-echo "source $HOME/init.zsh" >> ~/.zshrc
+cd ~
+git clone git@github.com:jclosure/dotfiles.git
+echo "source $HOME/dotfiles/init.zsh" >> ~/.zshrc
 ```
