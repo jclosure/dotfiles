@@ -15,9 +15,9 @@ fi
 source ~/.zplug/init.zsh
 zplug "zplug/zplug"                      # Manage zplug in the same way as any other packages<Paste>
 
-zplug "jamesob/desk"                     # Desk shell plugin
+zplug "jamesob/desk"                      # Desk shell plugin
 zplug "zsh-users/zsh-autosuggestions"    #  fish-like autosuggestion for zsh
-zplug "robbyrussell/oh-my-zsh", use:"lib/clipboard.zsh" # integrate zsh clipboard into system clipboard
+# zplug "robbyrussell/oh-my-zsh", use:"lib/clipboard.zsh" # integrate zsh clipboard into system clipboard
 zplug "knu/zsh-delsel-mode", use:delsel-mode
 
 # zplug romkatv/powerlevel10k, as:theme, depth:1 # powerlevel10k
@@ -42,3 +42,4 @@ zplug load
 
 # keybindings for ~/.oh-my-zsh/lib/clipboard.zsh
 source $DOTFILES/clipboard_wrapper.zsh
+
