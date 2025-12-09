@@ -1,10 +1,17 @@
 DOTFILES=${0:a:h}
 
-# PROMPT
-PROMPT='%{$fg_bold[white]%}%M ${ret_status} %{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
-export PATH=~/bin:/usr/local/bin:/usr/local/sbin:$PATH
+# PRE-REQUISITES CHECK
+if [[ ! command -v git &> /dev/null ]]; then
+  echo "Git is not installed. Please install Git to use this Zsh configuration."
+  return  
+fi
 
+if [[ ! command -v curl &> /dev/null ]]; then
+  echo "Curl is not installed. Please install Curl to use this Zsh configuration."
+  return  
+fi
 
+## ZPLUG SETUP
 # Check if zplug is installed
 if [[ ! -d ~/.zplug ]]; then
   git clone https://github.com/zplug/zplug ~/.zplug
@@ -37,9 +44,20 @@ fi
 # Source plugins & add commands to $PATH
 zplug load
 
+## OH-MY-ZSH SETUP
+# Check if Oh-My-Zsh is installed
+if [[ ! -d ~/.oh-my-zsh ]]; then
+  curl 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
 
-# LOAD OTHER STUFF
 
-# keybindings for ~/.oh-my-zsh/lib/clipboard.zsh
+# LOCAL CUSTOMIZATIONS
+
+# Custom keybindings for ~/.oh-my-zsh/lib/clipboard.zsh
 source $DOTFILES/clipboard_wrapper.zsh
 
+# PROMPT
+PROMPT='%{$fg_bold[white]%}%M ${ret_status} %{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
+
+# PATH CUSTOMIZATION
+export PATH=~/bin:/usr/local/bin:/usr/local/sbin:$PATH
