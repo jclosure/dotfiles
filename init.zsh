@@ -1,12 +1,12 @@
 DOTFILES=${0:a:h}
 
 # PRE-REQUISITES CHECK
-if [[ ! command -v git &> /dev/null ]]; then
+if ! command -v git &> /dev/null; then
   echo "Git is not installed. Please install Git to use this Zsh configuration."
   return  
 fi
 
-if [[ ! command -v curl &> /dev/null ]]; then
+if ! command -v curl &> /dev/null;  then
   echo "Curl is not installed. Please install Curl to use this Zsh configuration."
   return  
 fi
