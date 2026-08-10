@@ -1,0 +1,6 @@
+[submodule "emacs/.emacs.d"]
+	path = emacs/.emacs.d
+	url = https://github.com/plexus/chemacs2.git
+[submodule "emacs/ide"]
+	path = emacs/ide
+	url = https://github.com/jclosure/vscode-flavored-emacs-2026.git
