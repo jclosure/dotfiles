@@ -1,12 +1,13 @@
-;;; init.el --- experimental profile -*- lexical-binding: t; -*-
+;;; init.el --- emacs-light -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
-;; Placeholder profile, loaded via Chemacs2 as "experimental" (see
-;; ../.emacs-profiles.el). A scratch space for trying out packages/config
-;; without risking minimal, light, or ide — safe to break, reset, or
-;; rewrite entirely. Starts as a copy of light's baseline. Flesh this out
-;; as needed — it's intentionally a stub for now.
+;; Loaded when this stow module is active (`stow emacs-light`, after
+;; unstowing whichever other emacs-* module was active — they all target
+;; ~/.emacs.d, so only one can be stowed at a time). Meant to sit between
+;; emacs-minimal and emacs-ide: a package manager and a handful of
+;; quality-of-life packages, but no IDE-weight tooling (LSP, DAP, etc).
+;; Flesh this out as needed — it's intentionally a stub for now.
 
 ;;; Code:
 

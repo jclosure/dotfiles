@@ -6,34 +6,31 @@ directory is a module; most are stow packages that get symlinked into
 
 ## Modules
 
-| Module  | Type          | What it does                                                                 |
-|---------|---------------|-------------------------------------------------------------------------------|
-| `emacs` | stow package  | [Chemacs2](https://github.com/plexus/chemacs2) (submodule) stowed to `~/.emacs.d`, plus `.emacs-profiles.el` stowed to `~/.emacs-profiles.el`. Chemacs2 is a profile switcher — see [Emacs profiles](#emacs-profiles) below. |
-| `zsh`   | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
+| Module            | Type          | What it does                                                                 |
+|--------------------|---------------|-------------------------------------------------------------------------------|
+| `emacs-minimal`    | stow package  | Symlinks `.emacs.d` into `$HOME`. Near-stock Emacs, no third-party packages.  |
+| `emacs-light`      | stow package  | Symlinks `.emacs.d` into `$HOME`. package.el + a few quality-of-life packages. |
+| `emacs-ide`        | stow package  | Symlinks `.emacs.d` into `$HOME`. `.emacs.d` is a submodule: [jclosure/vscode-flavored-emacs-2026](https://github.com/jclosure/vscode-flavored-emacs-2026). |
+| `emacs-experimental` | stow package | Symlinks `.emacs.d` into `$HOME`. Scratch space for trying things out.       |
+| `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
 
-### Emacs profiles
+### Switching Emacs configs
 
-Four Emacs profiles live under `emacs/`, selected via Chemacs2:
-
-| Profile        | Source                                                              |
-|----------------|----------------------------------------------------------------------|
-| `minimal`      | `emacs/minimal/` — plain directory in this repo, near-stock Emacs. |
-| `light`        | `emacs/light/` — plain directory in this repo, package.el + a few QoL packages. |
-| `ide`          | `emacs/ide/` — submodule: [jclosure/vscode-flavored-emacs-2026](https://github.com/jclosure/vscode-flavored-emacs-2026). |
-| `experimental` | `emacs/experimental/` — plain directory in this repo, scratch space for trying things out. |
-
-None of the four are stowed into `$HOME` themselves (`emacs/.stow-local-ignore` excludes them) — Chemacs2 references them directly by their path in this checkout via `emacs/.emacs-profiles.el`. Plain `emacs` with no flags loads the `default` profile, aliased there to `ide` to match this repo's prior single-profile behavior. Switch explicitly with:
+All four `emacs-*` modules symlink to the same target, `~/.emacs.d`, so
+only one can be stowed at a time — stow refuses (safely; it aborts before
+touching the filesystem) if you try to stow a second one on top of an
+active one. Switch by unstowing the current one first:
 
 ```sh
-emacs --with-profile minimal
-emacs --with-profile light
-emacs --with-profile ide
-emacs --with-profile experimental
+stow -D emacs-minimal      # deactivate current
+stow emacs-ide             # activate another
 ```
 
-or persist a different default with `echo minimal > ~/.emacs-profile`.
+or in one step:
 
-Want to add another profile? See [`emacs/README.md`](emacs/README.md#adding-another-profile).
+```sh
+stow -D emacs-minimal && stow emacs-ide
+```
 
 ## Installation
 
@@ -42,12 +39,12 @@ cd ~
 git clone --recurse-submodules git@github.com:jclosure/dotfiles.git
 cd dotfiles
 
-# stow packages (symlinked into $HOME)
-stow emacs
+# pick one emacs-* module (see table above)
+stow emacs-ide
 
 # zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
 # missing, then sources zsh/init.zsh
 echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```
 
-Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive` instead.
+Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive` instead (only needed for `emacs-ide`, the only module with a submodule).
