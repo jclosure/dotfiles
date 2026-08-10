@@ -21,6 +21,7 @@ cd dotfiles
 # stow packages (symlinked into $HOME)
 stow emacs
 
-# zsh is a lib, not a stow package — source it instead
-echo "source $HOME/dotfiles/zsh/init.zsh" >> ~/.zshrc
+# zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
+# missing, then sources zsh/init.zsh
+echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```

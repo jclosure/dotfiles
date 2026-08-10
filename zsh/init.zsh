@@ -48,13 +48,19 @@ zplug load
 # Vendored oh-my-zsh pieces (see zsh/lib/) — clipboard.zsh + git-prompt.zsh,
 # no Oh-My-Zsh install required
 source $DOTFILES/lib/clipboard.zsh
-source $DOTFILES/lib/git-prompt.zsh
 
 # Custom keybindings for system clipboard integration
 source $DOTFILES/clipboard_wrapper.zsh
 
 # PROMPT
-PROMPT='%{$fg_bold[white]%}%M %(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )%{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
+# Only apply ours (colors, git prompt segment, PROMPT) when no Oh-My-Zsh
+# theme is selected (ZSH_THEME=""), so setting ZSH_THEME to a real theme
+# name (see install.sh) overrides it cleanly instead of us clobbering that
+# theme's own git-prompt styling/functions.
+if [[ -z "$ZSH_THEME" ]]; then
+  source $DOTFILES/lib/git-prompt.zsh
+  PROMPT='%{$fg_bold[white]%}%M %(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )%{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
+fi
 
 # PATH CUSTOMIZATION
 export PATH=~/bin:/usr/local/bin:/usr/local/sbin:$PATH
