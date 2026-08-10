@@ -1,23 +1,29 @@
+# .emacs.d is now the chemacs2 submodule (bootstrap only, doesn't
+# accumulate this stuff) and ide is a submodule with its own ignores.
+# These unanchored patterns cover generated state in any plain-directory
+# profile living directly in this repo (minimal/, light/, experimental/)
+# at any depth.
+
 # Byte/native compilation artifacts
 *.elc
-.emacs.d/eln-cache/
+eln-cache/
 
 # Installed packages (reinstalled by package.el / straight / etc.)
-.emacs.d/elpa/
-.emacs.d/straight/
+elpa/
+straight/
 
 # Auto-generated bootstrap file
-.emacs.d/package-quickstart.el
+package-quickstart.el
 
 # Runtime/state data — recentf, savehist, undo history, backups, autosaves,
 # persistent scratch, eshell history, custom.el, etc.
-.emacs.d/etc/
-.emacs.d/var/
+etc/
+var/
 
 # Misc local state
-.emacs.d/places
-.emacs.d/history
-.emacs.d/transient/
-.emacs.d/tramp
-.emacs.d/url/
-.emacs.d/auto-save-list/
+places
+history
+transient/
+tramp
+url/
+auto-save-list/
