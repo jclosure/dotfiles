@@ -1,0 +1,23 @@
+# Byte/native compilation artifacts
+*.elc
+.emacs.d/eln-cache/
+
+# Installed packages (reinstalled by package.el / straight / etc.)
+.emacs.d/elpa/
+.emacs.d/straight/
+
+# Auto-generated bootstrap file
+.emacs.d/package-quickstart.el
+
+# Runtime/state data — recentf, savehist, undo history, backups, autosaves,
+# persistent scratch, eshell history, custom.el, etc.
+.emacs.d/etc/
+.emacs.d/var/
+
+# Misc local state
+.emacs.d/places
+.emacs.d/history
+.emacs.d/transient/
+.emacs.d/tramp
+.emacs.d/url/
+.emacs.d/auto-save-list/
