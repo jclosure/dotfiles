@@ -7,7 +7,7 @@ cutbuffer () {
   if which clipcopy &>/dev/null; then
     printf "%s" "$CUTBUFFER" | clipcopy
   else
-    echo "clipcopy function not found. Please make sure you have Oh My Zsh installed correctly."
+    echo "clipcopy function not found. Make sure zsh/lib/clipboard.zsh was sourced."
   fi
 }
 
@@ -19,7 +19,7 @@ copybuffer () {
   if which clipcopy &>/dev/null; then
     printf "%s" "$CUTBUFFER" | clipcopy
   else
-    echo "clipcopy function not found. Please make sure you have Oh My Zsh installed correctly."
+    echo "clipcopy function not found. Make sure zsh/lib/clipboard.zsh was sourced."
   fi
 }
 
@@ -31,7 +31,7 @@ pastebuffer () {
       killring=("$CUTBUFFER" "${(@)killring[1,-2]}")
     fi
   else
-    echo "clippaste function not found. Please make sure you have Oh My Zsh installed correctly."
+    echo "clippaste function not found. Make sure zsh/lib/clipboard.zsh was sourced."
   fi
   zle yank
 }

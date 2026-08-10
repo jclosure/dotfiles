@@ -24,7 +24,6 @@ zplug "zplug/zplug"                      # Manage zplug in the same way as any o
 
 zplug "jamesob/desk"                      # Desk shell plugin
 zplug "zsh-users/zsh-autosuggestions"    #  fish-like autosuggestion for zsh
-# zplug "robbyrussell/oh-my-zsh", use:"lib/clipboard.zsh" # integrate zsh clipboard into system clipboard
 zplug "knu/zsh-delsel-mode", use:delsel-mode
 
 # zplug romkatv/powerlevel10k, as:theme, depth:1 # powerlevel10k
@@ -44,20 +43,18 @@ fi
 # Source plugins & add commands to $PATH
 zplug load
 
-## OH-MY-ZSH SETUP
-# Check if Oh-My-Zsh is installed
-if [[ ! -d ~/.oh-my-zsh ]]; then
-  curl 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-fi
-
-
 # LOCAL CUSTOMIZATIONS
 
-# Custom keybindings for ~/.oh-my-zsh/lib/clipboard.zsh
+# Vendored oh-my-zsh pieces (see zsh/lib/) — clipboard.zsh + git-prompt.zsh,
+# no Oh-My-Zsh install required
+source $DOTFILES/lib/clipboard.zsh
+source $DOTFILES/lib/git-prompt.zsh
+
+# Custom keybindings for system clipboard integration
 source $DOTFILES/clipboard_wrapper.zsh
 
 # PROMPT
-PROMPT='%{$fg_bold[white]%}%M ${ret_status} %{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
+PROMPT='%{$fg_bold[white]%}%M %(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )%{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
 
 # PATH CUSTOMIZATION
 export PATH=~/bin:/usr/local/bin:/usr/local/sbin:$PATH
