@@ -1,0 +1,26 @@
+# Generated Emacs state, unanchored so it matches at any depth (mainly
+# under .emacs.d/).
+
+# Byte/native compilation artifacts
+*.elc
+eln-cache/
+
+# Installed packages (reinstalled by package.el / straight / etc.)
+elpa/
+straight/
+
+# Auto-generated bootstrap file
+package-quickstart.el
+
+# Runtime/state data — recentf, savehist, undo history, backups, autosaves,
+# persistent scratch, eshell history, custom.el, etc.
+etc/
+var/
+
+# Misc local state
+places
+history
+transient/
+tramp
+url/
+auto-save-list/

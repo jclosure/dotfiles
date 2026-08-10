@@ -1,8 +1,5 @@
-# .emacs.d is now the chemacs2 submodule (bootstrap only, doesn't
-# accumulate this stuff) and ide is a submodule with its own ignores.
-# These unanchored patterns cover generated state in any plain-directory
-# profile living directly in this repo (minimal/, light/, experimental/)
-# at any depth.
+# Generated Emacs state, unanchored so it matches at any depth (mainly
+# under .emacs.d/).
 
 # Byte/native compilation artifacts
 *.elc
