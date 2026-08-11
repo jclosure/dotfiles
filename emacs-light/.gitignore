@@ -1,6 +1,12 @@
 # Generated Emacs state, unanchored so it matches at any depth (mainly
 # under .emacs.d/).
 
+# only include our config files
+*.*
+!init.el
+!early-init.el
+
+
 # Byte/native compilation artifacts
 *.elc
 eln-cache/
