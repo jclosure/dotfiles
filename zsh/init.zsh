@@ -52,6 +52,34 @@ source $DOTFILES/lib/clipboard.zsh
 # Custom keybindings for system clipboard integration
 source $DOTFILES/clipboard_wrapper.zsh
 
+# Alt+Left/Right for word-wise cursor movement. zsh's default Meta-f/Meta-b
+# already do this, but most terminal emulators send xterm-style CSI
+# sequences for Alt+Arrow (ESC[1;3C / ESC[1;3D) rather than a bare ESC f /
+# ESC b, so without these the arrow-key chord does nothing.
+bindkey "^[[1;3C" forward-word
+bindkey "^[[1;3D" backward-word
+
+# HOST-SPECIFIC CUSTOMIZATIONS
+#
+# This machine (pop-os) has gcc-14/libgcc-14-dev installed (C only) without
+# g++-14 -- so /usr/lib/gcc/x86_64-linux-gnu/14 exists but has no C++
+# standard library headers at all (/usr/include/c++/14 doesn't exist).
+# The bare `gcc`/`g++`/`cc`/`c++` commands already correctly resolve to 13
+# here (only the 13 packages provide those unversioned symlinks), so this
+# doesn't change anything by itself -- it's a defensive/explicit pin for
+# any tool that does look at $CC/$CXX, in case that ever changes (e.g. a
+# future g++-14 install). It does NOT fix clangd specifically: clangd's own
+# GCC-toolchain auto-detection ignores $CC/$CXX and defaults to the
+# newest-numbered install it finds, landing on the broken 14 regardless --
+# see emacs-ide/.emacs.d/cpp-demo/.clangd's explicit --gcc-install-dir for
+# where that actually gets fixed.
+case "$(hostname)" in
+  pop-os)
+    export CC=gcc-13
+    export CXX=g++-13
+    ;;
+esac
+
 # PROMPT
 # Only apply ours (colors, git prompt segment, PROMPT) when no Oh-My-Zsh
 # theme is selected (ZSH_THEME=""), so setting ZSH_THEME to a real theme
