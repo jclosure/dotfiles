@@ -13,6 +13,8 @@ directory is a module; most are stow packages that get symlinked into
 | `emacs-ide`        | stow package  | Symlinks `.emacs.d` into `$HOME`. `.emacs.d` is a submodule: [jclosure/vscode-flavored-emacs-2026](https://github.com/jclosure/vscode-flavored-emacs-2026). |
 | `emacs-experimental` | stow package | Symlinks `.emacs.d` into `$HOME`. Scratch space for trying things out.       |
 | `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
+| `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
+| `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
 
 ### Switching Emacs configs
 
@@ -41,6 +43,10 @@ cd dotfiles
 
 # pick one emacs-* module (see table above)
 stow emacs-ide
+
+# terminal setup
+stow cmux
+stow ghostty
 
 # zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
 # missing, then sources zsh/init.zsh
