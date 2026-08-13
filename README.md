@@ -15,6 +15,7 @@ directory is a module; most are stow packages that get symlinked into
 | `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
 | `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
 | `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
+| `pi`               | stow package  | Symlinks global Pi agent instructions at `.pi/agent/AGENTS.md`. Credentials, sessions, caches, and machine-local settings remain untracked. |
 
 ### Switching Emacs configs
 
@@ -47,6 +48,9 @@ stow emacs-ide
 # terminal setup
 stow cmux
 stow ghostty
+
+# global Pi agent instructions (never credentials or session history)
+stow pi
 
 # zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
 # missing, then sources zsh/init.zsh
