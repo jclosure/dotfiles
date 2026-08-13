@@ -16,6 +16,7 @@ directory is a module; most are stow packages that get symlinked into
 | `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
 | `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
 | `pi`               | stow package  | Symlinks global Pi agent instructions at `.pi/agent/AGENTS.md`. Credentials, sessions, caches, and machine-local settings remain untracked. |
+| `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
 
 ### Switching Emacs configs
 
@@ -51,6 +52,9 @@ stow ghostty
 
 # global Pi agent instructions (never credentials or session history)
 stow pi
+
+# shared agent credentials (values remain in macOS Keychain)
+stow agent-secrets
 
 # zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
 # missing, then sources zsh/init.zsh

@@ -1,0 +1,9 @@
+# Environment variable = macOS Keychain account
+# Keychain service: com.joelholder.agent-secrets
+# This file contains names only—never secret values.
+GITHUB_TOKEN=GITHUB_TOKEN
+GH_TOKEN=GITHUB_TOKEN
+OPENROUTER_API_KEY=OPENROUTER_API_KEY
+BRAVE_API_KEY=BRAVE_API_KEY
+VERCEL_API_KEY=VERCEL_API_KEY
+WORDPRESS_API_KEY=WORDPRESS_API_KEY
