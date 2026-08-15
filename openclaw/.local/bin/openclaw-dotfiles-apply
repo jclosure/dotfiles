@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+if ! command -v openclaw >/dev/null 2>&1; then
+  echo "openclaw is not installed; install OpenClaw first" >&2
+  exit 1
+fi
+
+patch="$HOME/.openclaw/dotfiles/portable.json5"
+if [ ! -f "$patch" ]; then
+  echo "portable OpenClaw patch not found: $patch" >&2
+  exit 1
+fi
+
+# Validate the merged result before changing the private mutable config.
+# Do not enable --allow-exec: applying dotfiles must never execute secret
+# provider commands merely to test their resolvability.
+openclaw config patch --file "$patch" --dry-run >/dev/null
+openclaw config patch --file "$patch" >/dev/null
+openclaw config validate >/dev/null
+
+printf '%s\n' "OpenClaw portable settings applied and validated."
+printf '%s\n' "Private mutable config remains at ~/.openclaw/openclaw.json"
