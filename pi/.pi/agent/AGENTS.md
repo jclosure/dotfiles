@@ -8,7 +8,7 @@ This file is managed by the `pi` Stow module in `~/dotfiles`. Global instruction
 
 Joel's wiki is at `https://wiki.joelholder.dev/home`.  It is backing store for our second brain.  Use it to preserve, document, archive.  It is also used as a collaboration surface with Joel.
 
-When Joel refers to "our notes," he means the Obsidian vault at `~/notes`, unless he explicitly says otherwise.
+When Joel refers to "our notes," he means the Obsidian vault at `~/notes`, unless he explicitly says otherwise. When an Obsidian CLI task requires Obsidian to be running and it is not, start Obsidian automatically and continue without asking Joel to launch it.
 
 `ubuntu.local` is Joel's Linux box on the home LAN. It is an authorized remote development and administration target that agents will work on. Connect as `user@ubuntu.local` on port 22; the SSH keys are already installed for passwordless access.
 
