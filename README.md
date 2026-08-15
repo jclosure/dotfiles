@@ -15,7 +15,9 @@ directory is a module; most are stow packages that get symlinked into
 | `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
 | `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
 | `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
-| `pi`               | stow package  | Symlinks global Pi agent instructions and personal reusable skills under `.pi/agent/`. Credentials, sessions, caches, and machine-local settings remain untracked. |
+| `pi`               | stow package  | Symlinks global Pi agent instructions under `.pi/agent/`. Credentials, sessions, caches, and machine-local settings remain untracked. |
+| `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
+| `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
 | `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
 
 ### Switching Emacs configs
@@ -50,8 +52,15 @@ stow emacs-ide
 stow cmux
 stow ghostty
 
-# global Pi agent instructions and personal skills (never credentials or session history)
+# global Pi agent instructions (never credentials or session history)
 stow pi
+
+# personal skills shared by compatible agents
+stow agent-skills
+
+# safe Hermes integration; then apply portable settings
+stow hermes
+hermes-dotfiles-apply
 
 # shared agent credentials (values remain in macOS Keychain)
 stow agent-secrets

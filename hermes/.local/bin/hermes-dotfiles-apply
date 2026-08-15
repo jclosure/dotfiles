@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+if ! command -v hermes >/dev/null 2>&1; then
+  echo "hermes is not installed; install Hermes Agent first" >&2
+  exit 1
+fi
+
+# Hermes keeps its mutable configuration in ~/.hermes/config.yaml. That file
+# also contains machine-local messaging identifiers, so the public dotfiles
+# repository deliberately does not replace it. Update only the portable list
+# using Hermes' own YAML and atomic-write helpers. `hermes config set` treats
+# list values as strings, so it is not suitable for this setting.
+HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
+if [ ! -x "$HERMES_PY" ]; then
+  HERMES_PY="$HOME/.hermes/hermes-agent/.venv/bin/python"
+fi
+if [ ! -x "$HERMES_PY" ]; then
+  echo "cannot find the Hermes Python environment" >&2
+  exit 1
+fi
+
+"$HERMES_PY" - <<'PY'
+from hermes_cli.config import get_config_path
+from utils import atomic_yaml_write, fast_safe_load
+
+config_path = get_config_path()
+with config_path.open(encoding="utf-8") as stream:
+    config = fast_safe_load(stream) or {}
+
+skills = config.setdefault("skills", {})
+current = skills.get("external_dirs", [])
+if not isinstance(current, list):
+    current = []
+shared = "~/.agents/skills"
+if shared not in current:
+    current.append(shared)
+skills["external_dirs"] = current
+atomic_yaml_write(config_path, config, sort_keys=False)
+PY
+
+printf '%s\n' "Hermes portable settings applied."
+printf '%s\n' "Shared skills: ~/.agents/skills"
+printf '%s\n' "Hermes local/bundled skills remain under ~/.hermes/skills"

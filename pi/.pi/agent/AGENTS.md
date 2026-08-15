@@ -12,4 +12,4 @@ Joel's wiki is at `https://wiki.joelholder.dev/home`.  It is backing store for o
 
 Document important details, setup routines, configuration files, and utilities in the wiki.  Keep at TODO file in there, so it can be used it as a work queue and task tracker.
 
-Maintain the Home Lab wiki page **Agent skills catalog** (`j6zsSCU27L`) as the canonical skills inventory. Whenever a skill is created, substantially changed, renamed, installed, or removed, update that catalog with its name, purpose/triggers, scope, source path, dependencies, and related documentation. Never place credentials or other secret values in the catalog.
+Maintain the Home Lab wiki page **Agent skills catalog** (`YLMI7w9p4O`) as the canonical skills inventory. Whenever a skill is created, substantially changed, renamed, installed, or removed, update that catalog with its name, purpose/triggers, scope, source path, dependencies, and related documentation. Never place credentials or other secret values in the catalog.
