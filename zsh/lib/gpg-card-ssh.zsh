@@ -14,7 +14,7 @@
 ssh() {
   local host="$1"
   case "$host" in
-    ubuntu.local|loops-mac-mini.local) ;;
+    ubuntu.local|ubuntu|loops-mac-mini.local|pop-os.local|pop-os) ;;
     *) command ssh "$@"; return $? ;;
   esac
   shift
