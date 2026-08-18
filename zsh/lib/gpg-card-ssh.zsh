@@ -32,9 +32,17 @@ ssh() {
   fi
 
   # No live master: learn the remote's standard agent-socket path (differs by
-  # OS - /run/user/UID/gnupg on Linux, ~/.gnupg on macOS) so we know where to
-  # bind our forward, then establish the connection with it from the start
-  # (adding a forward to an already-multiplexed connection doesn't work).
+  # OS - /run/user/UID/gnupg on Linux, ~/.gnupg on macOS) and kill any agent
+  # of its own listening there, then establish the connection with the
+  # forward included from the start (adding one to an already-multiplexed
+  # connection doesn't work). Killing the remote agent first matters: on
+  # macOS (and possibly elsewhere), StreamLocalBindUnlink silently fails to
+  # take over a path an agent is actively listening on - a brand-new path
+  # works fine, but replacing a live one doesn't - and that failure is silent
+  # unless ExitOnForwardFailure is set, so without this the session would
+  # quietly fall back to using the target's own local card instead of
+  # yours. gpg-agent auto-restarts on its own next local invocation, so this
+  # has no lasting effect once the forwarding session ends.
   #
   # Non-interactive ssh commands don't source login-shell rc files, so on a
   # box where gpgconf only lives under Homebrew (not on the default PATH in
@@ -43,14 +51,15 @@ ssh() {
   # trusting it.
   local remote_std local_extra
   remote_std=$(command ssh -o ControlPath=none -o ConnectTimeout=5 "$host" \
-    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket' \
-    2>/dev/null)
+    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket; gpgconf --kill gpg-agent' \
+    2>/dev/null | sed -n 1p)
 
   if [[ "$remote_std" != /* ]]; then
     # Couldn't determine the remote socket path - don't guess, just connect plainly.
     command ssh "$host" "$@"
   else
     local_extra="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-extra-socket)"
-    command ssh -o StreamLocalBindUnlink=yes -R "${remote_std}:${local_extra}" "$host" "$@"
+    command ssh -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
+      -R "${remote_std}:${local_extra}" "$host" "$@"
   fi
 }
