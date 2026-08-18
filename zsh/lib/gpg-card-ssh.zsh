@@ -68,3 +68,59 @@ ssh() {
       -R "${remote_std}:${local_extra}" "$host" "$@"
   fi
 }
+
+# Same idea as ssh() above, but for mu4e / real GPG mail use (signing,
+# decrypting) rather than SSH auth: forwards the FULL local agent-socket
+# instead of the restricted agent-extra-socket.
+#
+# Turns out the extra-socket restriction (no raw SCD passthrough - see the
+# "OpenPGP card not available: Forbidden" note elsewhere in the wiki) isn't
+# just an admin-command restriction, it breaks card *selection* entirely: a
+# card key operation needs to ask scdaemon which card is actually connected
+# and match it by keygrip, and the extra-socket can't do that handshake at
+# all. Without it, gpg-agent falls back to demanding whatever single card
+# serial it last knew about for that key - forever, regardless of which of
+# your (identical-keygrip) cards is actually forwarded. Bit us as "mu4e on
+# ubuntu.local keeps asking to insert serial 35910688 no matter which
+# YubiKey" - a full-socket forward fixed it immediately, no stub file even
+# needed touching.
+#
+# Deliberately a separate function, not a mode of ssh() above: the full
+# socket also exposes card admin (PIN change, key admin, etc.) to whatever's
+# on the other end, so this is opt-in only for mail sessions. Runs on its own
+# ControlPath too, so a plain ssh() (restricted) session and an sshmail()
+# (full) session to the same host never share - and thus never silently
+# reuse - each other's master connection.
+sshmail() {
+  local host="$1"
+  case "$host" in
+    ubuntu.local|ubuntu|loops-mac-mini.local|pop-os.local|pop-os) ;;
+    *) echo "sshmail: $host is not a known card-forwarding host" >&2; return 1 ;;
+  esac
+  shift
+
+  local cpath="$HOME/.ssh/sockets/mail-%r@%h-%p"
+
+  if command ssh -o ControlPath="$cpath" -O check "$host" >/dev/null 2>&1; then
+    command ssh -o ControlPath="$cpath" "$host" "$@"
+    return $?
+  fi
+
+  local remote_std
+  remote_std=$(command ssh -o ControlPath=none -o ConnectTimeout=5 "$host" \
+    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket; gpgconf --kill gpg-agent' \
+    2>/dev/null | sed -n 1p)
+
+  if [[ "$remote_std" != /* ]]; then
+    echo "sshmail: couldn't determine remote agent-socket path, connecting without forward" >&2
+    command ssh -o ControlPath="$cpath" "$host" "$@"
+    return $?
+  fi
+
+  PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --launch gpg-agent >/dev/null 2>&1
+  local local_full
+  local_full="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-socket)"
+
+  command ssh -o ControlPath="$cpath" -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
+    -R "${remote_std}:${local_full}" "$host" "$@"
+}
