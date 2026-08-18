@@ -13,10 +13,18 @@
 # `command ssh` is used throughout to bypass this function itself (avoids
 # recursion) and to reach the real binary from scripts/non-interactive shells
 # that never source this file in the first place.
+#
+# The case match strips any leading user@ before comparing against the
+# allowlist (${host#*@} - no-op if there's no @) - but $host itself keeps
+# the original full argument, which is what actually gets passed to every
+# real ssh invocation below. So `ssh tester1@ubuntu.local` forwards and
+# connects as tester1 (their own gpg homedir, their own control socket via
+# ssh_config's %r), not silently coerced to whatever the bare-host default
+# user is.
 
 ssh() {
   local host="$1"
-  case "$host" in
+  case "${host#*@}" in
     ubuntu.local|ubuntu|loops-mac-mini.local|pop-os.local|pop-os) ;;
     *) command ssh "$@"; return $? ;;
   esac
@@ -93,7 +101,7 @@ ssh() {
 # reuse - each other's master connection.
 sshmail() {
   local host="$1"
-  case "$host" in
+  case "${host#*@}" in
     ubuntu.local|ubuntu|loops-mac-mini.local|pop-os.local|pop-os) ;;
     *) echo "sshmail: $host is not a known card-forwarding host" >&2; return 1 ;;
   esac
