@@ -132,3 +132,37 @@ sshmail() {
   command ssh -o ControlPath="$cpath" -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
     -R "${remote_std}:${local_full}" "$host" "$@"
 }
+
+# Reset for the "stale ControlMaster" gotcha (see the wiki page for this
+# file): ssh()/sshmail() both reuse an already-live master unconditionally,
+# without re-deciding anything - so if a master was established while THIS
+# machine's own agent was itself mid-forward from somewhere else (as
+# happened on pop-os: it had earlier been the target of a Mac->pop-os
+# forward, so its "own" socket was actually relaying the Mac's card at the
+# moment a pop-os->ubuntu.local sshmail session was first established), the
+# wrong card stays wired in indefinitely, even after the local card
+# situation corrects itself - because nothing ever prompts either function
+# to look again.
+#
+# Kills both the plain ssh() master and the sshmail() master (different
+# ControlPaths, so both need it - see "Operational gotcha" in the wiki) for
+# the given host, then kills and relaunches THIS machine's own gpg-agent so
+# the next ssh()/sshmail() call to anywhere starts from a fresh read of
+# whatever card is actually plugged in here right now. `ssh -O exit` against
+# an already-dead/nonexistent socket just errors harmlessly - not checked
+# for success, both are always attempted.
+sshreset() {
+  local host="$1"
+  case "${host#*@}" in
+    ubuntu.local|ubuntu|loops-mac-mini.local|pop-os.local|pop-os) ;;
+    *) echo "sshreset: $host is not a known card-forwarding host" >&2; return 1 ;;
+  esac
+
+  command ssh -O exit "$host" >/dev/null 2>&1
+  command ssh -O exit -o ControlPath="$HOME/.ssh/sockets/mail-%r@%h-%p" "$host" >/dev/null 2>&1
+
+  PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --kill gpg-agent >/dev/null 2>&1
+  PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --launch gpg-agent >/dev/null 2>&1
+
+  echo "sshreset: cleared both masters for $host and relaunched the local gpg-agent" >&2
+}
