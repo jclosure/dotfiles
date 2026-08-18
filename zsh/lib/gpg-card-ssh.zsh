@@ -31,19 +31,27 @@ ssh() {
   # No live master: decide once, before establishing the connection that
   # becomes the master. -o ControlPath=none keeps this probe off the shared
   # socket so it can never itself become (or block) that master.
-  local probe remote_std has_card local_extra
+  #
+  # Non-interactive ssh commands don't source login-shell rc files, so on a
+  # box where gpg/gpgconf only live under Homebrew (not on the default PATH
+  # in that context) they'd silently fail to run at all - hence the explicit
+  # PATH prefix below, and the line-count sanity check afterward rather than
+  # trusting positional output blindly.
+  local probe remote_std has_card local_extra nlines
   probe=$(command ssh -o ControlPath=none -o ConnectTimeout=5 "$host" \
-    'gpgconf --list-dirs agent-socket; gpg --card-status >/dev/null 2>&1 && echo HAS_CARD || echo NO_CARD' \
+    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket; gpg --card-status >/dev/null 2>&1 && echo HAS_CARD || echo NO_CARD' \
     2>/dev/null)
+  nlines=$(print -r -- "$probe" | wc -l | tr -d ' ')
   remote_std=$(print -r -- "$probe" | sed -n 1p)
   has_card=$(print -r -- "$probe" | sed -n 2p)
 
-  if [[ "$has_card" == "HAS_CARD" || -z "$remote_std" ]]; then
-    # Remote already has its own card (or the probe failed outright) - don't
-    # touch its agent socket at all.
+  if [[ "$nlines" != "2" || "$remote_std" != /* || "$has_card" == "HAS_CARD" ]]; then
+    # Remote already has its own card, or the probe didn't come back looking
+    # like we expect (unreachable, PATH/tooling missing, etc.) - either way,
+    # don't touch its agent socket.
     command ssh "$host" "$@"
   else
-    local_extra="$(gpgconf --list-dirs agent-extra-socket)"
+    local_extra="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-extra-socket)"
     command ssh -o StreamLocalBindUnlink=yes -R "${remote_std}:${local_extra}" "$host" "$@"
   fi
 }
