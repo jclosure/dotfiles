@@ -58,6 +58,11 @@ ssh() {
     # Couldn't determine the remote socket path - don't guess, just connect plainly.
     command ssh "$host" "$@"
   else
+    # Make sure OUR OWN agent is actually alive before offering its socket as
+    # the forward target - it may not be, e.g. if this same machine was on
+    # the receiving end of a forward (and thus had ITS agent killed by this
+    # same logic) since the last time anything local touched gpg.
+    PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --launch gpg-agent >/dev/null 2>&1
     local_extra="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-extra-socket)"
     command ssh -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
       -R "${remote_std}:${local_extra}" "$host" "$@"
