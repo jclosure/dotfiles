@@ -48,6 +48,7 @@ zplug load
 # Vendored oh-my-zsh pieces (see zsh/lib/) — clipboard.zsh + git-prompt.zsh,
 # no Oh-My-Zsh install required
 source $DOTFILES/lib/clipboard.zsh
+source $DOTFILES/lib/gpg-card-ssh.zsh
 
 # Custom keybindings for system clipboard integration
 source $DOTFILES/clipboard_wrapper.zsh
