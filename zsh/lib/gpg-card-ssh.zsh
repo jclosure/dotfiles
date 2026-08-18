@@ -1,8 +1,11 @@
 # Card-aware ssh: when connecting to a known OpenPGP/YubiKey host, forward
 # THIS machine's gpg-agent back so signing/decryption/auth happen on the
-# physical card wherever you're actually sitting -- but only if the target
-# doesn't already have its own card plugged in. A machine with its own card
-# always wins for its own local work; forwarding never overrides that.
+# physical card wherever you're actually sitting, for the duration of that
+# SSH session - even if the target also has its own card plugged in. You
+# can't touch hardware you're not standing next to, so "I'm ssh'd in" always
+# means "use the client's card". A target's own card only ever matters for
+# someone directly at ITS console, which never goes through this function at
+# all - that's just default gpg-agent behavior, nothing to build.
 #
 # Add new hosts to the case pattern below as they join the setup. Anything
 # not listed there falls straight through to plain ssh, untouched.
@@ -19,36 +22,32 @@ ssh() {
   esac
   shift
 
-  # If a control-master connection is already up for this host, its forwarding
-  # state (or lack of it) was already decided when it was established; just
-  # reuse it. (SSH silently ignores -R on a connection that joins an existing
-  # master, so re-deciding here wouldn't do anything anyway.)
+  # If a control-master connection is already up for this host, forwarding
+  # was already set up (or not) when it was established; just reuse it. (SSH
+  # silently ignores -R on a connection that joins an existing master, so
+  # re-deciding here wouldn't do anything anyway.)
   if command ssh -O check "$host" >/dev/null 2>&1; then
     command ssh "$host" "$@"
     return $?
   fi
 
-  # No live master: decide once, before establishing the connection that
-  # becomes the master. -o ControlPath=none keeps this probe off the shared
-  # socket so it can never itself become (or block) that master.
+  # No live master: learn the remote's standard agent-socket path (differs by
+  # OS - /run/user/UID/gnupg on Linux, ~/.gnupg on macOS) so we know where to
+  # bind our forward, then establish the connection with it from the start
+  # (adding a forward to an already-multiplexed connection doesn't work).
   #
   # Non-interactive ssh commands don't source login-shell rc files, so on a
-  # box where gpg/gpgconf only live under Homebrew (not on the default PATH
-  # in that context) they'd silently fail to run at all - hence the explicit
-  # PATH prefix below, and the line-count sanity check afterward rather than
-  # trusting positional output blindly.
-  local probe remote_std has_card local_extra nlines
-  probe=$(command ssh -o ControlPath=none -o ConnectTimeout=5 "$host" \
-    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket; gpg --card-status >/dev/null 2>&1 && echo HAS_CARD || echo NO_CARD' \
+  # box where gpgconf only lives under Homebrew (not on the default PATH in
+  # that context) it would silently fail to run at all - hence the explicit
+  # PATH prefix, and checking the result actually looks like a path before
+  # trusting it.
+  local remote_std local_extra
+  remote_std=$(command ssh -o ControlPath=none -o ConnectTimeout=5 "$host" \
+    'PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; gpgconf --list-dirs agent-socket' \
     2>/dev/null)
-  nlines=$(print -r -- "$probe" | wc -l | tr -d ' ')
-  remote_std=$(print -r -- "$probe" | sed -n 1p)
-  has_card=$(print -r -- "$probe" | sed -n 2p)
 
-  if [[ "$nlines" != "2" || "$remote_std" != /* || "$has_card" == "HAS_CARD" ]]; then
-    # Remote already has its own card, or the probe didn't come back looking
-    # like we expect (unreachable, PATH/tooling missing, etc.) - either way,
-    # don't touch its agent socket.
+  if [[ "$remote_std" != /* ]]; then
+    # Couldn't determine the remote socket path - don't guess, just connect plainly.
     command ssh "$host" "$@"
   else
     local_extra="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-extra-socket)"
