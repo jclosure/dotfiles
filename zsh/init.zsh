@@ -45,6 +45,15 @@ zplug load
 
 # LOCAL CUSTOMIZATIONS
 
+## FZF SETUP
+# Built from https://github.com/junegunn/fzf source (not a package manager) so the
+# binary and shell integration always match; same self-bootstrap pattern as zplug above.
+if [[ ! -x ~/.fzf/bin/fzf ]]; then
+  git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+  ~/.fzf/install --bin --no-update-rc
+fi
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+
 # Vendored oh-my-zsh pieces (see zsh/lib/) — clipboard.zsh + git-prompt.zsh,
 # no Oh-My-Zsh install required
 source $DOTFILES/lib/clipboard.zsh
