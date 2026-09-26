@@ -1,8 +1,18 @@
-# Oh My Zsh-style PowerShell: Oh My Posh prompt + icons + git + PSReadLine.
+# Oh My Zsh-style PowerShell: Oh My Posh prompt + git + PSReadLine + fzf.
 #
 # Stowed to ~/.config/powershell/profile.ps1 and dot-sourced from $PROFILE by a
 # one-line loader (see powershell/README.md), since $PROFILE lives under
-# OneDrive, which doesn't handle symlinks.
+# OneDrive, which doesn't handle symlinks. Shared by PowerShell 7 (the main
+# shell) and Windows PowerShell 5.1; each has its own $PROFILE loader.
+#
+# No Terminal-Icons: plain `ls`. In PowerShell 7, $PSStyle colors only
+# directories, which is close to Oh My Zsh's default ls.
+
+# PowerShell 7's default directory style is bold on a blue *background*;
+# use bold blue text instead, like GNU ls (di=01;34).
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $PSStyle.FileInfo.Directory = "`e[1;34m"
+}
 
 # Prompt theme with git status (installed via: winget install JanDeDobbeleer.OhMyPosh).
 # robbyrussell = the Oh My Zsh default; local copy of the upstream theme from
@@ -12,7 +22,6 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
     oh-my-posh init pwsh --config "$HOME\.config\oh-my-posh\robbyrussell.omp.json" | Invoke-Expression
 }
 
-Import-Module Terminal-Icons   # icons in ls / Get-ChildItem
 Import-Module posh-git         # git tab completion
 
 # Emacs key bindings, and no as-you-type suggestions: history only comes up
