@@ -153,8 +153,10 @@ Install-Module posh-git, PSFzf -Scope CurrentUser
 Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'   # loader; $PROFILE is under OneDrive, which doesn't sync symlinks
 ```
 
-`$PROFILE` differs per shell. Run the last line in PowerShell 7, and again in
-5.1 if you use it (5.1 also needs a newer PSReadLine; see the module README).
+Run these in **PowerShell 7**. `$PROFILE` and the module folders differ per
+shell, so if you also use Windows PowerShell 5.1, repeat the `Install-Module`
+and `Set-Content` lines there (5.1 also needs a newer PSReadLine; see the
+module README).
 In Windows Terminal, make **PowerShell** (7) the default profile, and set the
 font to a Nerd Font by its v3 short name, for example `JetBrainsMono NFM`.
 Otherwise the prompt's Windows logo shows as a box.

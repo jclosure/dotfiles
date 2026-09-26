@@ -33,14 +33,25 @@ main shell. The same profile also works in the built-in Windows PowerShell
    winget install Microsoft.PowerShell          # PowerShell 7
    winget install JanDeDobbeleer.OhMyPosh
    winget install junegunn.fzf
+   # then, in a new PowerShell 7 window:
    Install-Module posh-git, PSFzf -Scope CurrentUser
-   # Only if you'll also use Windows PowerShell 5.1: it ships PSReadLine
-   # 2.0.0, which is too old for the profile. PowerShell 7 includes 2.4+.
+   ```
+
+   PowerShell 7 and Windows PowerShell 5.1 keep **separate** per-user module
+   folders (`Documents\PowerShell\Modules` and
+   `Documents\WindowsPowerShell\Modules`), so a module installed from one
+   isn't visible to the other. If you also use 5.1, run the install there
+   too, plus a newer PSReadLine (5.1 ships 2.0.0, which is too old for the
+   profile; PowerShell 7 includes 2.4+):
+
+   ```powershell
+   Install-Module posh-git, PSFzf -Scope CurrentUser
    Install-Module PSReadLine -Scope CurrentUser -Force -SkipPublisherCheck
    ```
 
-   Modules installed from Windows PowerShell 5.1 are visible to PowerShell 7
-   as well, since PowerShell 7 also searches 5.1's module folder.
+   (Watch out: a `pwsh` started *from* 5.1 inherits 5.1's `PSModulePath`
+   and can see 5.1's modules. A `pwsh` from Terminal can't. Test from
+   Terminal.)
 
 2. Stow the package with [`winstow`](../winstow.ps1):
 
