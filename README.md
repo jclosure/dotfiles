@@ -159,7 +159,8 @@ and `Set-Content` lines there (5.1 also needs a newer PSReadLine; see the
 module README).
 In Windows Terminal, make **PowerShell** (7) the default profile, and set the
 font to a Nerd Font by its v3 short name, for example `JetBrainsMono NFM`.
-Otherwise the prompt's Windows logo shows as a box.
+Otherwise the prompt's Windows logo shows as a box. Do the same for VS Code's
+terminal, which has its own font setting: `"terminal.integrated.fontFamily": "JetBrainsMono NFM"`.
 
 **Which modules apply on Windows:** `emacs-*` and `powershell`. `zsh`,
 `cmux`, `ghostty` and `agent-secrets` (macOS Keychain) are for mac/linux

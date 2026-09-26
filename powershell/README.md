@@ -82,6 +82,15 @@ main shell. The same profile also works in the built-in Windows PowerShell
    rather than `JetBrainsMono Nerd Font Mono`. If the old name is set,
    Terminal quietly falls back to a plain font and the logo shows as a box.
 
+5. VS Code's integrated terminal has its own font setting and doesn't use
+   Windows Terminal's. Set it to the same Nerd Font, or the logo shows as a
+   box there. In VS Code's user `settings.json` (Ctrl+, → search "terminal
+   font family"):
+
+   ```json
+   "terminal.integrated.fontFamily": "JetBrainsMono NFM"
+   ```
+
 ## Customizing
 
 - **Theme:** a normal Oh My Posh config. The Windows logo is the `os`
