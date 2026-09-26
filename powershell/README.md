@@ -13,7 +13,9 @@ Makes Windows PowerShell 5.1 feel like the zsh + Oh My Zsh setup. It gives you:
   untracked and one modified file. `✗` means uncommitted changes.
 - **Terminal-Icons**: file-type icons in `ls` / `Get-ChildItem`.
 - **posh-git**: git tab completion.
-- **PSReadLine 2.2+**: history suggestions in a list view, Emacs key bindings.
+- **PSReadLine 2.2+**: Emacs key bindings, with no as-you-type suggestions.
+- **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type
+  to fuzzy-filter your history, and Enter puts the command on the prompt.
 
 | File | Stowed to |
 |------|-----------|
@@ -28,9 +30,12 @@ Makes Windows PowerShell 5.1 feel like the zsh + Oh My Zsh setup. It gives you:
    winget install JanDeDobbeleer.OhMyPosh
    Install-Module Terminal-Icons -Scope CurrentUser
    Install-Module posh-git -Scope CurrentUser
-   # Windows PowerShell ships PSReadLine 2.0.0, which is too old for
-   # history suggestions. Install a newer one next to it:
+   # Windows PowerShell ships PSReadLine 2.0.0, which is too old for the
+   # profile's settings. Install a newer one next to it:
    Install-Module PSReadLine -Scope CurrentUser -Force -SkipPublisherCheck
+   # fzf-powered Ctrl-r
+   winget install junegunn.fzf
+   Install-Module PSFzf -Scope CurrentUser
    ```
 
 2. Stow the package with [`winstow`](../winstow.ps1):

@@ -19,7 +19,7 @@ directory is a module; most are stow packages that get symlinked into
 | `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
 | `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
 | `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
-| `powershell`       | stow package (Windows) | Oh My Zsh-style Windows PowerShell: Oh My Posh `robbyrussell` prompt with Windows logo + hostname, Terminal-Icons, posh-git, PSReadLine history suggestions + Emacs keys. Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
+| `powershell`       | stow package (Windows) | Oh My Zsh-style Windows PowerShell: Oh My Posh `robbyrussell` prompt with Windows logo + hostname, Terminal-Icons, posh-git, Emacs keys, fzf history search on Ctrl-r (no as-you-type suggestions). Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
 | `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
 
 ### Switching Emacs configs
@@ -136,14 +136,15 @@ C/C++ support needs LLVM. See the Windows section of the
 **4. PowerShell that feels like Oh My Zsh**
 
 The `powershell` module sets up an Oh My Posh `robbyrussell` prompt with a
-Windows logo and the hostname, `ls` icons, git completion, and history
-suggestions with Emacs keys. Full details are in
+Windows logo and the hostname, `ls` icons, git completion, Emacs keys, and
+fzf history search on Ctrl-r. Full details are in
 [`powershell/README.md`](powershell/README.md).
 
 ```powershell
 winget install JanDeDobbeleer.OhMyPosh
 Install-Module Terminal-Icons, posh-git -Scope CurrentUser
 Install-Module PSReadLine -Scope CurrentUser -Force -SkipPublisherCheck   # built-in 2.0.0 is too old
+winget install junegunn.fzf; Install-Module PSFzf -Scope CurrentUser    # Ctrl-r history search
 
 .\winstow.ps1 powershell
 Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'   # loader; $PROFILE is under OneDrive, which doesn't sync symlinks

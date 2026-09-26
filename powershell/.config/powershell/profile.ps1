@@ -15,13 +15,18 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
 Import-Module Terminal-Icons   # icons in ls / Get-ChildItem
 Import-Module posh-git         # git tab completion
 
-# History-based suggestions shown as a list, with Emacs key bindings.
-# Needs PSReadLine 2.2+ (installed to CurrentUser; the built-in 2.0.0 is too old).
-# Predictions error out when output is redirected (scripts, Emacs shell buffers),
-# so only enable them in a real console.
+# Emacs key bindings, and no as-you-type suggestions: history only comes up
+# on demand with Ctrl-r (below). PSReadLine 2.2+ turns predictions on by
+# default, so switch them off explicitly. (Installed to CurrentUser; the
+# built-in 2.0.0 is too old for -PredictionSource.)
 Import-Module PSReadLine -MinimumVersion 2.2
 Set-PSReadLineOption -EditMode Emacs
-if (-not [Console]::IsOutputRedirected) {
-    Set-PSReadLineOption -PredictionSource History
-    Set-PSReadLineOption -PredictionViewStyle ListView
+Set-PSReadLineOption -PredictionSource None
+
+# Ctrl-r = fzf over command history, like fzf's zsh widget: fuzzy filter,
+# Enter puts the command on the prompt to edit or run.
+# Needs: winget install junegunn.fzf; Install-Module PSFzf -Scope CurrentUser
+if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
+    Import-Module PSFzf
+    Set-PsFzfOption -PSReadlineChordReverseHistory 'Ctrl+r'
 }
