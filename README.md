@@ -76,3 +76,19 @@ echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```
 
 Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive` instead (only needed for `emacs-ide`, the only module with a submodule).
+
+### Windows
+
+GNU Stow doesn't run natively on Windows, so use `winstow.ps1` at the repo
+root instead. It's a PowerShell port of Stow 2.4.1 with the same options,
+ignore files, `.stowrc`, tree folding and conflict checks, and it creates the
+same relative symlinks. Its results were checked against the real stow code.
+Turn on Developer Mode (Settings → System → For developers) first so symlinks
+can be created without admin rights. Also set a user `HOME` environment
+variable, or native Emacs looks for its config under `%APPDATA%`.
+
+```powershell
+cd ~\dotfiles
+.\winstow.ps1 emacs-ide            # same as: stow emacs-ide
+.\winstow.ps1 -n -v -D emacs-ide   # dry run, verbose unstow
+```
