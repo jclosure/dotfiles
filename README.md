@@ -80,20 +80,78 @@ Already cloned without `--recurse-submodules`? Run `git submodule update --init 
 
 ### Windows
 
-GNU Stow doesn't run natively on Windows, so use `winstow.ps1` at the repo
-root instead. It's a PowerShell port of Stow 2.4.1 with the same options,
-ignore files, `.stowrc`, tree folding and conflict checks, and it creates the
-same relative symlinks. Its results were checked against the real stow code.
-Turn on Developer Mode (Settings → System → For developers) first so symlinks
-can be created without admin rights. Also set a user `HOME` environment
-variable, or native Emacs looks for its config under `%APPDATA%`.
+Quick start for a fresh Windows 11 machine. Windows PowerShell 5.1 is
+enough; you don't need PowerShell 7.
+
+**1. One-time prerequisites**
 
 ```powershell
-cd ~\dotfiles
-.\winstow.ps1 emacs-ide            # same as: stow emacs-ide
-.\winstow.ps1 -n -v -D emacs-ide   # dry run, verbose unstow
+# Symlinks without admin: Settings → System → For developers → Developer Mode = On
 
-# Oh My Zsh-style PowerShell. Install the tools first; see powershell/README.md
-.\winstow.ps1 powershell
-Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'
+# Allow local scripts (winstow.ps1, the profile) to run
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+
+# Make ~ mean C:\Users\<you> for Emacs and friends (otherwise %APPDATA%)
+[Environment]::SetEnvironmentVariable('HOME', $env:USERPROFILE, 'User')
+
+# Then open a new terminal and clone
+cd ~
+git clone --recurse-submodules https://github.com/jclosure/dotfiles.git
+cd dotfiles
 ```
+
+**2. winstow: stow for Windows**
+
+GNU Stow doesn't run natively on Windows. [`winstow.ps1`](winstow.ps1) is a
+PowerShell port of Stow 2.4.1 that takes the same options and behaves the
+same way: ignore files, `.stowrc`, tree folding, conflict checks,
+`--adopt`, `--dotfiles`. It creates the same relative symlinks. It was
+tested against the real stow source and gave identical results.
+
+```powershell
+.\winstow.ps1 emacs-ide                       # stow emacs-ide
+.\winstow.ps1 -n -v emacs-ide                 # dry run: show what it would do
+.\winstow.ps1 -D emacs-ide -S emacs-minimal   # switch in one step; aborts before touching anything on conflict
+```
+
+Windows PowerShell 5.1 has no `&&`. Use the single `-D … -S …` call above,
+or `...; if ($LASTEXITCODE -eq 0) { ... }`. As with stow, winstow won't
+replace files or links it doesn't own. It reports `existing target is not
+owned by stow`: remove the file first, or use `--adopt` to move it into
+the package.
+
+**3. Emacs**
+
+```powershell
+winget install GNU.Emacs
+# add C:\Program Files\Emacs\emacs-<version>\bin to your user PATH
+.\winstow.ps1 emacs-ide
+```
+
+On Windows, `emacs-ide` works except for mail: mu/mu4e has no Windows
+build, so the config skips it. Tree-sitter grammars need a C compiler, and
+C/C++ support needs LLVM. See the Windows section of the
+[emacs-ide README](https://github.com/jclosure/vscode-flavored-emacs-2026#windows).
+
+**4. PowerShell that feels like Oh My Zsh**
+
+The `powershell` module sets up an Oh My Posh `robbyrussell` prompt with a
+Windows logo and the hostname, `ls` icons, git completion, and history
+suggestions with Emacs keys. Full details are in
+[`powershell/README.md`](powershell/README.md).
+
+```powershell
+winget install JanDeDobbeleer.OhMyPosh
+Install-Module Terminal-Icons, posh-git -Scope CurrentUser
+Install-Module PSReadLine -Scope CurrentUser -Force -SkipPublisherCheck   # built-in 2.0.0 is too old
+
+.\winstow.ps1 powershell
+Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'   # loader; $PROFILE is under OneDrive, which doesn't sync symlinks
+```
+
+Set Windows Terminal's font to a Nerd Font, using its v3 short name, for
+example `JetBrainsMono NFM`. Otherwise the logo and icons show as boxes.
+
+**Which modules apply on Windows:** `emacs-*` and `powershell`. `zsh`,
+`cmux`, `ghostty` and `agent-secrets` (macOS Keychain) are for mac/linux
+only. The agent modules haven't been tried on Windows.
