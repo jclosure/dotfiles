@@ -19,6 +19,7 @@ directory is a module; most are stow packages that get symlinked into
 | `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
 | `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
 | `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
+| `powershell`       | stow package (Windows) | Oh My Zsh-style Windows PowerShell: Oh My Posh `robbyrussell` prompt with Windows logo + hostname, Terminal-Icons, posh-git, PSReadLine history suggestions + Emacs keys. Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
 | `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
 
 ### Switching Emacs configs
@@ -91,4 +92,8 @@ variable, or native Emacs looks for its config under `%APPDATA%`.
 cd ~\dotfiles
 .\winstow.ps1 emacs-ide            # same as: stow emacs-ide
 .\winstow.ps1 -n -v -D emacs-ide   # dry run, verbose unstow
+
+# Oh My Zsh-style PowerShell. Install the tools first; see powershell/README.md
+.\winstow.ps1 powershell
+Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'
 ```
