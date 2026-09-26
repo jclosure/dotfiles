@@ -97,7 +97,22 @@ esac
 # theme's own git-prompt styling/functions.
 if [[ -z "$ZSH_THEME" ]]; then
   source $DOTFILES/lib/git-prompt.zsh
-  PROMPT='%{$fg_bold[white]%}%M %(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )%{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
+
+  # Nerd Font OS logo, matching the PowerShell prompt's Windows logo idea.
+  # Codepoints used:
+  #   Linux/Tux: U+F31A, macOS/Apple: U+F302, BSD/Beastie: U+F28F,
+  #   Windows: U+E62A (for zsh under MSYS/Cygwin/Git Bash).
+  function _dotfiles_prompt_os_icon() {
+    case "$(uname -s 2>/dev/null)" in
+      Linux) print -r -- $'\uf31a ' ;;
+      Darwin) print -r -- $'\uf302 ' ;;
+      FreeBSD|OpenBSD|NetBSD|DragonFly) print -r -- $'\uf28f ' ;;
+      CYGWIN*|MINGW*|MSYS*) print -r -- $'\ue62a ' ;;
+    esac
+  }
+  DOTFILES_PROMPT_OS_ICON="$(_dotfiles_prompt_os_icon)"
+
+  PROMPT='%{$fg_bold[blue]%}${DOTFILES_PROMPT_OS_ICON}%{$fg_bold[white]%}%M %(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )%{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)'
 fi
 
 # PATH CUSTOMIZATION
