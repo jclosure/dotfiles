@@ -32,6 +32,10 @@ Import-Module PSReadLine -MinimumVersion 2.2
 Set-PSReadLineOption -EditMode Emacs
 Set-PSReadLineOption -PredictionSource None
 
+# Don't color the command (first word) yellow as you type; draw it like any
+# other text, as zsh does without syntax highlighting.
+Set-PSReadLineOption -Colors @{ Command = (Get-PSReadLineOption).DefaultTokenColor }
+
 # ---------------------------------------------------------------------------
 # zle-style line editing, mirroring zsh/init.zsh + zsh/clipboard_wrapper.zsh
 # (with zsh-delsel-mode):
@@ -42,6 +46,7 @@ Set-PSReadLineOption -PredictionSource None
 #   Ctrl+W                 cut region to the system clipboard (cutbuffer)
 #   Alt+W / Alt+Shift+W    copy region to the system clipboard (copybuffer)
 #   Ctrl+Y                 paste from the system clipboard (pastebuffer)
+#   Ctrl+/ (Ctrl+_)        undo the last edit (zle undo)
 # With no region, Ctrl+W / Alt+W act from the start of the line to the
 # cursor, the same as zle's kill-region with the default mark at 0.
 # (Windows Terminal binds Alt+Left/Right to pane focus by default; that's
@@ -146,6 +151,13 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+y' -Description 'Paste from the system cli
     param($key, $arg)
     Stop-ZleRegion
     [Microsoft.PowerShell.PSConsoleReadLine]::Paste($key, $arg)
+}
+
+# zle undo is Ctrl+/ -- terminals send it as Ctrl+_ (0x1F), so bind both.
+Set-PSReadLineKeyHandler -Chord 'Ctrl+/', 'Ctrl+_' -Description 'Undo the last edit (zsh undo)' -ScriptBlock {
+    param($key, $arg)
+    Stop-ZleRegion
+    [Microsoft.PowerShell.PSConsoleReadLine]::Undo($key, $arg)
 }
 
 # Ctrl-r = fzf over command history, like fzf's zsh widget: fuzzy filter,

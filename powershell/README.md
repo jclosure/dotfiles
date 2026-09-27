@@ -17,6 +17,8 @@ main shell. The same profile also works in the built-in Windows PowerShell
   directories are colored, in bold blue like GNU `ls`.
 - **posh-git**: git tab completion.
 - **PSReadLine 2.2+**: Emacs key bindings, with no as-you-type suggestions.
+  The command (first word) isn't colored yellow while you type; it's drawn
+  like the rest of the line.
 - **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type
   to fuzzy-filter your history, and Enter puts the command on the prompt.
 - **zle-style editing**, matching `zsh/init.zsh` and
@@ -29,6 +31,7 @@ main shell. The same profile also works in the built-in Windows PowerShell
   | Ctrl+W | Cut the region to the system clipboard |
   | Alt+W (or Alt+Shift+W) | Copy the region to the system clipboard |
   | Ctrl+Y | Paste from the system clipboard |
+  | Ctrl+/ (also Ctrl+_) | Undo the last edit, like zle's `undo` |
 
   The region is drawn bright white on blue (`#264F78`), Emacs-style, so the
   whole region stays visible and the character under the cursor shows as the
