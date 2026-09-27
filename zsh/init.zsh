@@ -1,5 +1,17 @@
 DOTFILES=${0:a:h}
 
+# UTF-8 LOCALE
+# Some terminals (seen with cmux on macOS, and plain ssh sessions) start the
+# shell with LANG unset, i.e. the C locale. zsh then can't expand $'\uXXXX'
+# ("character not in range") -- which broke the prompt's Apple logo below --
+# and zle mis-measures any non-ASCII text on the command line. zsh re-reads
+# the locale as soon as these are assigned.
+if [[ "${LC_ALL:-${LC_CTYPE:-$LANG}}" != *(UTF-8|utf-8|UTF8|utf8)* ]]; then
+  export LANG=en_US.UTF-8
+  [[ -n "$LC_ALL" ]] && export LC_ALL=en_US.UTF-8
+  [[ -n "$LC_CTYPE" ]] && export LC_CTYPE=en_US.UTF-8
+fi
+
 # PRE-REQUISITES CHECK
 if ! command -v git &> /dev/null; then
   echo "Git is not installed. Please install Git to use this Zsh configuration."
@@ -68,6 +80,14 @@ source $DOTFILES/clipboard_wrapper.zsh
 # ESC b, so without these the arrow-key chord does nothing.
 bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
+
+# Region (Ctrl+Space mark) color, Emacs-style, same as the PowerShell setup:
+# bright white on blue #264F78. zsh's default is reverse video, which is
+# nearly the terminal's block-cursor color, so the character under the
+# cursor lost its highlight. 24-bit where the terminal says it supports it,
+# otherwise the nearest 256-color (zsh/nearcolor).
+[[ "$COLORTERM" == (truecolor|24bit) ]] || zmodload zsh/nearcolor 2>/dev/null
+zle_highlight=(region:fg=#ffffff,bg=#264f78)
 
 # HOST-SPECIFIC CUSTOMIZATIONS
 #
