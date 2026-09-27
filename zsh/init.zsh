@@ -120,12 +120,16 @@ if [[ -z "$ZSH_THEME" ]]; then
 
   # Nerd Font OS logo, matching the PowerShell prompt's Windows logo idea.
   # Codepoints used:
-  #   Linux/Tux: U+F31A, macOS/Apple: U+F302, BSD/Beastie: U+F28F,
+  #   Linux/Tux: U+F31A, macOS/Apple: U+F8FF (Apple's, not Nerd Font), BSD/Beastie: U+F28F,
   #   Windows: U+E62A (for zsh under MSYS/Cygwin/Git Bash).
   function _dotfiles_prompt_os_icon() {
     case "$(uname -s 2>/dev/null)" in
       Linux) print -r -- $'\uf31a ' ;;
-      Darwin) print -r -- $'\uf302 ' ;;
+      # Apple's own logo (U+F8FF), not the Nerd Font one: macOS fonts
+      # (Monaco, Helvetica, SF) have it, so it shows in iTerm2 with a plain
+      # font and in cmux via system fallback. It won't render when ssh'ing
+      # in from Windows/Linux, whose fonts don't have it.
+      Darwin) print -r -- $'\uf8ff ' ;;
       FreeBSD|OpenBSD|NetBSD|DragonFly) print -r -- $'\uf28f ' ;;
       CYGWIN*|MINGW*|MSYS*) print -r -- $'\ue62a ' ;;
     esac
