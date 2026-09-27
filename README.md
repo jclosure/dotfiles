@@ -21,7 +21,7 @@ directory is a module; most are stow packages that get symlinked into
 | `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
 | `powershell`       | stow package (Windows) | Oh My Zsh-style PowerShell 7 (also works in 5.1): Oh My Posh `robbyrussell` prompt with Windows logo + hostname, plain `ls` (directories bold blue), posh-git, Emacs keys, fzf history search on Ctrl-r (no as-you-type suggestions). Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
 | `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
-| `herd`             | stow package (all OSes) | herdr set up identically everywhere: `herd` command + agent dashboard, generated per-OS herdr config, and Handy push-to-talk voice settings. Run `herd setup` after stowing; `herd update` upgrades everything. See [`herd/README.md`](herd/README.md). |
+| `herd`             | stow package (macOS, Linux, Windows) | herdr set up identically everywhere: `herd` command + agent dashboard, generated per-OS herdr config, and Handy push-to-talk voice (installed and configured per OS, including the Wayland desktop shortcut on Linux). Run `herd setup` after stowing; `herd update` upgrades everything. See [`herd/README.md`](herd/README.md). |
 
 ### Switching Emacs configs
 
