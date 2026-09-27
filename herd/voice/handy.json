@@ -13,7 +13,7 @@
   },
   "macos": {
     "bindings": {
-      "transcribe": "option+space",
+      "transcribe": "ctrl+shift+space",
       "cancel": "escape"
     }
   },

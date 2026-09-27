@@ -114,14 +114,14 @@ nothing is submitted until you press Enter.
 | OS | Shortcut | How it's triggered |
 |---|---|---|
 | Windows | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut |
-| macOS | **Option+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut. Ctrl+Space is macOS's input-source switcher. |
+| macOS | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut |
 | Linux, X11 | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut; text typed with `xdotool` |
 | Linux, Wayland | **Ctrl+Shift+Space**: tap to start, tap again to stop | Wayland doesn't let apps grab global keys, so the **desktop** runs `handy --toggle-transcription`. `herd setup` adds this shortcut to **COSMIC** automatically. On GNOME or KDE it prints the one shortcut to add by hand. Text is typed with `wtype`. |
 
 ### Using it: tap to start, tap to stop
 
-This works the same on every machine. On macOS, use Option+Space instead of
-Ctrl+Shift+Space.
+This works the same on every machine: the shortcut is **Ctrl+Shift+Space**
+everywhere, including macOS.
 
 1. **Click where the text should go.** For example, the dashboard's task
    prompt, an agent's input box, an editor or a browser field.
