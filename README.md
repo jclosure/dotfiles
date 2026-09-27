@@ -15,6 +15,7 @@ directory is a module; most are stow packages that get symlinked into
 | `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
 | `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
 | `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
+| `terminator`       | stow package (Linux) | Symlinks `.config/terminator` into `$HOME`. Ctrl+Alt+Arrow pane focus; F1 unbound from Terminator help so it passes through to the app. Edits made in Terminator's Preferences dialog write through the symlink into this repo. |
 | `pi`               | stow package  | Symlinks global Pi agent instructions under `.pi/agent/`. Credentials, sessions, caches, and machine-local settings remain untracked. |
 | `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
 | `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
@@ -54,6 +55,7 @@ stow emacs-ide
 # terminal setup
 stow cmux
 stow ghostty
+stow terminator   # Linux
 # iTerm2 (macOS): Nerd symbol fonts, then import zsh/Development.json as the
 # default profile. See zsh/README.md "iTerm2 profile"
 brew install --cask font-symbols-only-nerd-font
@@ -171,5 +173,5 @@ Otherwise the prompt's Windows logo shows as a box. Do the same for VS Code's
 terminal, which has its own font setting: `"terminal.integrated.fontFamily": "JetBrainsMono NFM"`.
 
 **Which modules apply on Windows:** `emacs-*` and `powershell`. `zsh`,
-`cmux`, `ghostty` and `agent-secrets` (macOS Keychain) are for mac/linux
+`cmux`, `ghostty`, `terminator` and `agent-secrets` (macOS Keychain) are for mac/linux
 only. The agent modules haven't been tried on Windows.
