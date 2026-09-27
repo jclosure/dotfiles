@@ -814,15 +814,35 @@ def setup_herdr_config():
     have = target.read_text(encoding="utf-8") if target.is_file() else None
     if have == want:
         print(f"herdr config: up to date ({target})")
+    else:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if have is not None:
+            print(f"herdr config: backed up previous config to {backup(target)}")
+        target.write_text(want, encoding="utf-8", newline="\n")
+        print(f"herdr config: wrote {target}")
+    reload_herdr_config()
+
+
+def reload_herdr_config():
+    """Ask the running server to reload, and say exactly what happened."""
+    try:
+        proc = subprocess.run([HERDR, "server", "reload-config"], capture_output=True, text=True, timeout=15)
+    except FileNotFoundError:
+        print(f"herdr config: herdr not found ({HERDR}); the config applies when herdr next starts")
         return
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if have is not None:
-        print(f"herdr config: backed up previous config to {backup(target)}")
-    target.write_text(want, encoding="utf-8", newline="\n")
-    print(f"herdr config: wrote {target}")
-    if server_running():
-        subprocess.run([HERDR, "server", "reload-config"], capture_output=True)
-        print("herdr config: reloaded running server")
+    raw = (proc.stdout or proc.stderr or "").strip()
+    try:
+        res = json.loads(raw.splitlines()[-1])
+    except (ValueError, IndexError):
+        print(f"herdr config: no running server reachable; the config applies when herdr next starts ({raw or proc.returncode})")
+        return
+    if "error" in res:
+        print(f"herdr config: reload failed: {res['error'].get('message', res['error'])}")
+        return
+    result = res.get("result", {})
+    print(f"herdr config: server reload {result.get('status', '?')}")
+    for d in result.get("diagnostics", []):
+        print(f"herdr config:   {d.get('severity', 'note')}: {d.get('message', d)}")
 
 
 def handy_paths():
