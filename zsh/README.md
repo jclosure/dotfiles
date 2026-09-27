@@ -8,6 +8,11 @@ Sane command-line with:
   highlight (zsh's default reverse video is nearly the cursor's color)
 - system clipboard integration (for all oses)
 - a Nerd Font OS logo in the prompt: Tux on Linux, Apple on macOS, Beastie on BSD
+  The logo needs a Nerd Font in the terminal. Ghostty and cmux have the
+  symbols built in. **iTerm2 doesn't**: in Settings → Profiles → (your
+  profile) → Text, check "Use a different font for non-ASCII text" and set
+  it to **Symbols Nerd Font Mono** (or use a full Nerd Font as the main
+  font). Otherwise the logo is blank or a box.
 - a UTF-8 locale even when the terminal starts the shell with `LANG` unset
   (cmux does). In the C locale zsh can't expand the logo's `$'\uXXXX'`
   ("character not in range"), so the logo showed up broken.
