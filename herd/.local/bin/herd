@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
-"""herd - herdr with an agent dashboard, the same on Windows, macOS and Linux.
-
-Usage
-  herd            start the herdr server if needed, open the dashboard workspace, attach
-  herd dash       run the dashboard in the current herdr pane
-  herd focus      jump to the dashboard workspace (bound to F1 / prefix+a in herdr)
-  herd setup      write the herdr config for this OS and apply the voice (Handy) settings
-  herd update     pull dotfiles, re-run setup, update herdr and Handy
-  herd doctor     show what herd found on this machine
-
-Lives in ~/dotfiles/herd (stow package). Not related to the upstream Shepherd daemon/plugin.
-"""
+#!/bin/sh
+""":"
+# sh part: run the first Python 3.8+ that actually works. `python3` can be the
+# Microsoft Store stub on Windows (Git Bash), so test before trusting it.
+for py in python3 python; do
+  "$py" -c 'import sys; sys.exit(sys.version_info < (3, 8))' >/dev/null 2>&1 && exec "$py" "$0" "$@"
+done
+echo "herd: needs Python 3.8+ on PATH" >&2
+exit 1
+":"""
+# herd - herdr with an agent dashboard, the same on Windows, macOS and Linux.
+# Lives in ~/dotfiles/herd (stow package); see its README. Not the upstream Shepherd daemon/plugin.
 
 DASH_HELP = """\
   up/down          select an agent          enter (empty input)   jump to selected agent
@@ -887,37 +886,163 @@ def handy_start():
         subprocess.Popen([str(app)], creationflags=subprocess.DETACHED_PROCESS)
     elif PLATFORM == "macos":
         subprocess.run(["open", "-a", "Handy"])
+    elif shutil.which("systemd-run"):
+        # The user systemd manager carries the desktop's DISPLAY/WAYLAND_DISPLAY, so this works over ssh too.
+        subprocess.run(["systemd-run", "--user", "--collect", "--quiet", str(app)])
     else:
         subprocess.Popen([str(app)], start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+# ---- Linux desktop session (read from the user systemd manager so it works over ssh)
+
+def linux_session():
+    """{'type': 'wayland'|'x11'|'', 'desktop': 'COSMIC'|'GNOME'|...}"""
+    env = dict(os.environ)
+    if shutil.which("systemctl"):
+        out = subprocess.run(["systemctl", "--user", "show-environment"], capture_output=True, text=True).stdout
+        for line in out.splitlines():
+            k, _, v = line.partition("=")
+            env.setdefault(k, v)
+    kind = env.get("XDG_SESSION_TYPE", "")
+    if not kind:
+        kind = "wayland" if env.get("WAYLAND_DISPLAY") else ("x11" if env.get("DISPLAY") else "")
+    return {"type": kind, "desktop": env.get("XDG_CURRENT_DESKTOP", "")}
+
+
+def linux_package_manager():
+    return "apt" if shutil.which("apt-get") else ("dnf" if shutil.which("dnf") else None)
+
+
+def handy_linux_version():
+    pm = linux_package_manager()
+    if pm == "apt":
+        cmd = ["dpkg-query", "-W", "-f=${Version}", "handy"]
+    elif pm == "dnf":
+        cmd = ["rpm", "-q", "--qf", "%{VERSION}", "handy"]
+    else:
+        return None
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else None
+
+
+def install_handy_linux(upgrade=False):
+    """Install (or upgrade) Handy from its GitHub release, plus the text-input tool for this session."""
+    import platform
+    import tempfile
+    import urllib.request
+
+    pm = linux_package_manager()
+    if pm is None:
+        print("voice: no apt or dnf here; install Handy from https://handy.computer")
+        return False
+    have = handy_linux_version()
+    if have and not upgrade:
+        return True
+    with urllib.request.urlopen("https://api.github.com/repos/cjpais/Handy/releases/latest", timeout=30) as r:
+        release = json.load(r)
+    latest = release["tag_name"].lstrip("v")
+    if have == latest:
+        print(f"voice: Handy {have} is the latest")
+        return True
+    arch = platform.machine()
+    suffix = {("apt", "x86_64"): "_amd64.deb", ("apt", "aarch64"): "_arm64.deb",
+              ("dnf", "x86_64"): ".x86_64.rpm", ("dnf", "aarch64"): ".aarch64.rpm"}.get((pm, arch))
+    asset = next((a for a in release["assets"] if suffix and a["name"].endswith(suffix)), None)
+    if asset is None:
+        print(f"voice: no Handy package for {pm}/{arch}; see https://handy.computer")
+        return False
+    # Wayland can't be typed into without a helper; X11 uses xdotool.
+    helper = "wtype" if linux_session()["type"] == "wayland" else "xdotool"
+    with tempfile.TemporaryDirectory() as tmp:
+        pkg = Path(tmp) / asset["name"]
+        print(f"voice: downloading {asset['name']}")
+        urllib.request.urlretrieve(asset["browser_download_url"], pkg)
+        pkg.chmod(0o644)  # apt's sandbox user must be able to read it
+        os.chmod(tmp, 0o755)
+        cmd = (["sudo", "apt-get", "install", "-y", str(pkg), helper] if pm == "apt"
+               else ["sudo", "dnf", "install", "-y", str(pkg), helper])
+        print("voice: " + " ".join(cmd))
+        ok = subprocess.run(cmd).returncode == 0
+    if ok:
+        print(f"voice: Handy {handy_linux_version()} installed")
+    return ok
+
+
+COSMIC_SHORTCUTS = Path.home() / ".config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom"
+HANDY_TOGGLE = "handy --toggle-transcription"
+
+
+def setup_linux_shortcut(combo):
+    """On Wayland, Handy can't grab a global shortcut; the desktop must run `handy --toggle-transcription`."""
+    sess = linux_session()
+    if sess["type"] != "wayland":
+        return
+    if "COSMIC" not in sess["desktop"].upper():
+        print(f"voice: Wayland on {sess['desktop'] or 'this desktop'}: add a custom shortcut ({combo}) "
+              f"that runs `{HANDY_TOGGLE}` in your desktop's keyboard settings")
+        return
+    names = {"ctrl": "Ctrl", "control": "Ctrl", "alt": "Alt", "option": "Alt", "shift": "Shift",
+             "super": "Super", "cmd": "Super", "meta": "Super"}
+    *mods, key = combo.lower().split("+")
+    mods = ", ".join(names[m] for m in mods)
+    entry = f'    (modifiers: [{mods}], key: "{key}"): Spawn("{HANDY_TOGGLE}"),'
+    text = COSMIC_SHORTCUTS.read_text(encoding="utf-8") if COSMIC_SHORTCUTS.is_file() else "{\n}\n"
+    if entry in text:
+        print(f"voice: COSMIC shortcut {combo} -> {HANDY_TOGGLE} up to date")
+        return
+    lines = [ln for ln in text.splitlines() if HANDY_TOGGLE not in ln]  # drop an older handy binding
+    body = "\n".join(lines).rstrip()
+    if not body.endswith("}"):
+        print(f"voice: can't parse {COSMIC_SHORTCUTS}; add {combo} -> `{HANDY_TOGGLE}` in COSMIC Settings")
+        return
+    body = body[:-1].rstrip()
+    if body.endswith("{"):
+        new = body + "\n" + entry + "\n}\n"
+    else:
+        new = body + ("" if body.endswith(",") else ",") + "\n" + entry + "\n}\n"
+    COSMIC_SHORTCUTS.parent.mkdir(parents=True, exist_ok=True)
+    if COSMIC_SHORTCUTS.is_file():
+        backup(COSMIC_SHORTCUTS)
+    COSMIC_SHORTCUTS.write_text(new, encoding="utf-8")
+    print(f"voice: COSMIC shortcut {combo} -> {HANDY_TOGGLE} (press once to start, again to stop)")
+
+
 def install_handy():
     app, _ = handy_paths()
+    if PLATFORM == "linux":
+        return install_handy_linux()
     if app.exists():
         return True
     if IS_WINDOWS:
         cmd = ["winget", "install", "--id", "cjpais.Handy", "-e",
                "--accept-source-agreements", "--accept-package-agreements"]
-    elif PLATFORM == "macos":
-        cmd = ["brew", "install", "--cask", "handy"]
     else:
-        print("voice: install Handy from https://handy.computer (no package recipe for Linux here yet)")
-        return False
-    print("voice: installing Handy:", " ".join(cmd))
+        cmd = ["brew", "install", "--cask", "handy"]
+    print("voice: installing Handy: " + " ".join(cmd))
     return subprocess.run(cmd).returncode == 0 and app.exists()
+
+
+def voice_config():
+    wanted = json.loads((MODULE_DIR / "voice/handy.json").read_text(encoding="utf-8"))
+    overrides = dict(wanted.get("all", {}))
+    overrides.update(wanted.get(PLATFORM, {}))
+    return overrides, wanted.get("wayland_shortcut", "ctrl+space")
 
 
 def setup_voice():
     if not install_handy():
         return
+    overrides, wayland_combo = voice_config()
+    if PLATFORM == "linux":
+        setup_linux_shortcut(wayland_combo)
     _, settings = handy_paths()
     if not settings.is_file():
-        print("voice: open Handy once and finish onboarding (model + permissions), then run `herd setup` again")
+        if not handy_running():
+            handy_start()
+        print("voice: Handy is open: pick a model and grant microphone (and on macOS, Accessibility) access, "
+              "then run `herd setup` again to apply the shared settings")
         return
-    wanted = json.loads((MODULE_DIR / "voice/handy.json").read_text(encoding="utf-8"))
-    overrides = dict(wanted.get("all", {}))
-    overrides.update(wanted.get(PLATFORM, {}))
     store = json.loads(settings.read_text(encoding="utf-8"))
     cur = store.setdefault("settings", {})
     changes = []
@@ -967,14 +1092,17 @@ def update():
     if IS_WINDOWS:
         subprocess.run(["winget", "upgrade", "--id", "cjpais.Handy", "-e",
                         "--accept-source-agreements", "--accept-package-agreements"])
+    elif PLATFORM == "linux":
+        install_handy_linux(upgrade=True)
     else:
-        print("voice: Handy updates itself")
+        print("voice: Handy updates itself on macOS")
 
 
 def doctor():
     def show(k, v):
         print(f"{k:<16} {v}")
     show("platform", PLATFORM)
+    show("python", f"{sys.executable} ({sys.version.split()[0]})")
     show("module", MODULE_DIR)
     show("herdr", HERDR)
     try:
@@ -994,6 +1122,26 @@ def doctor():
         show("handy shortcut", b.get("transcribe", {}).get("current_binding"))
     else:
         show("handy settings", f"{settings} (not created yet: finish Handy onboarding)")
+    if PLATFORM == "linux":
+        sess = linux_session()
+        show("session", f"{sess['type'] or '?'} / {sess['desktop'] or '?'}")
+        if sess["type"] == "wayland":
+            bound = COSMIC_SHORTCUTS.is_file() and HANDY_TOGGLE in COSMIC_SHORTCUTS.read_text(encoding="utf-8")
+            show("wayland shortcut", "COSMIC shortcut set" if bound else "not set by herd (see README)")
+
+
+USAGE = """\
+herd - herdr with an agent dashboard, the same on Windows, macOS and Linux.
+
+Usage
+  herd            start the herdr server if needed, open the dashboard workspace, attach
+  herd dash       run the dashboard in the current herdr pane
+  herd focus      jump to the dashboard workspace, creating it if missing (F1 / prefix+a)
+  herd setup      write the herdr config for this OS, reload herdr, install/configure Handy voice
+  herd update     pull dotfiles, re-run setup, update herdr and Handy
+  herd doctor     show what herd found on this machine
+
+Docs: ~/dotfiles/herd/README.md"""
 
 
 def main():
@@ -1003,7 +1151,7 @@ def main():
     actions = {"start": start, "dash": dash, "focus": focus_dashboard, "setup": setup,
                "update": update, "doctor": doctor}
     if cmd in ("-h", "--help", "help") or cmd not in actions:
-        print(__doc__.strip())
+        print(USAGE)
         sys.exit(0 if cmd in ("-h", "--help", "help") else 2)
     actions[cmd]()
 

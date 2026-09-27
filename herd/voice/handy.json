@@ -1,17 +1,27 @@
 {
-  "_comment": "Portable Handy settings merged into its settings_store.json by `herd setup`. Only the keys listed here are touched; model choice and permissions stay per machine. Never put API keys here.",
+  "_comment": "Portable Handy settings. `herd setup` merges \"all\" + the OS section into Handy's settings_store.json (only these keys; model choice and permissions stay per machine; never put API keys here). On Linux Wayland, Handy can't grab global shortcuts, so herd binds \"wayland_shortcut\" in the desktop (COSMIC automatically) to `handy --toggle-transcription`.",
   "all": {
     "shortcut_activation": "hold_or_toggle",
     "filler_word_removal_enabled": true,
     "clipboard_handling": "dont_modify"
   },
   "windows": {
-    "bindings": { "transcribe": "ctrl+space", "cancel": "escape" }
+    "bindings": {
+      "transcribe": "ctrl+space",
+      "cancel": "escape"
+    }
   },
   "macos": {
-    "bindings": { "transcribe": "option+space", "cancel": "escape" }
+    "bindings": {
+      "transcribe": "option+space",
+      "cancel": "escape"
+    }
   },
   "linux": {
-    "bindings": { "transcribe": "ctrl+space", "cancel": "escape" }
-  }
+    "bindings": {
+      "transcribe": "ctrl+space",
+      "cancel": "escape"
+    }
+  },
+  "wayland_shortcut": "ctrl+space"
 }
