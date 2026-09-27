@@ -121,7 +121,9 @@ nothing is submitted until you press Enter.
 ### Using it: tap to start, tap to stop
 
 This works the same on every machine: the shortcut is **Ctrl+Shift+Space**
-everywhere, including macOS.
+everywhere, including macOS. It's deliberately not Ctrl+Space. Handy grabs its
+shortcut globally, and Ctrl+Space is set-mark in the zsh and PowerShell setups
+here and in Emacs (and the input-source switcher on macOS).
 
 1. **Click where the text should go.** For example, the dashboard's task
    prompt, an agent's input box, an editor or a browser field.
