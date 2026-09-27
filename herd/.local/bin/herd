@@ -1,0 +1,988 @@
+#!/usr/bin/env python3
+"""herd - herdr with an agent dashboard, the same on Windows, macOS and Linux.
+
+Usage
+  herd            start the herdr server if needed, open the dashboard workspace, attach
+  herd dash       run the dashboard in the current herdr pane
+  herd focus      jump to the dashboard workspace (bound to F1 / prefix+a in herdr)
+  herd setup      write the herdr config for this OS and apply the voice (Handy) settings
+  herd update     pull dotfiles, re-run setup, update herdr and Handy
+  herd doctor     show what herd found on this machine
+
+Lives in ~/dotfiles/herd (stow package). Not related to the upstream Shepherd daemon/plugin.
+"""
+
+DASH_HELP = """\
+  up/down          select an agent          enter (empty input)   jump to selected agent
+  <number> enter   jump to agent #N         <text> enter          spawn a new agent with that task
+  tab              cycle "where" through known project dirs
+  /who <kind>      set agent kind (claude, codex, gemini, ...)
+  /where <path>    set working dir for new agents
+  /x <number>      close that agent's pane
+  /q               quit                     ?                      help"""
+
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+IS_WINDOWS = os.name == "nt"
+if IS_WINDOWS:
+    import msvcrt
+else:
+    import select
+    import termios
+    import tty
+
+PLATFORM = "windows" if IS_WINDOWS else ("macos" if sys.platform == "darwin" else "linux")
+MODULE_DIR = Path(__file__).resolve().parents[2]  # ~/dotfiles/herd (this file is stowed as a symlink)
+DOTFILES_DIR = MODULE_DIR.parent
+
+
+def find_herdr():
+    found = shutil.which("herdr")
+    if found:
+        return found
+    for cand in (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/herdr/herdr.exe",
+                 Path.home() / ".local/bin/herdr"):
+        if cand.is_file():
+            return str(cand)
+    return "herdr"
+
+
+def herdr_config_dir():
+    if IS_WINDOWS:
+        return Path(os.environ["APPDATA"]) / "herdr"
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "herdr"
+
+
+def state_dir():
+    if IS_WINDOWS:
+        return Path(os.environ["LOCALAPPDATA"]) / "herd"
+    return Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "herd"
+
+
+HERDR = find_herdr()
+STATE_FILE = state_dir() / "state.json"
+LEGACY_STATE_FILE = Path.home() / ".shepherd" / "state.json"  # pre-dotfiles Windows dashboard
+DASH_LABEL = "shepherd"  # workspace label the dashboard lives in
+POLL_SECONDS = 1.0
+
+# ---------------------------------------------------------------- ansi
+
+ESC = "\x1b["
+RESET = ESC + "0m"
+BOLD = ESC + "1m"
+DIM = ESC + "2m"
+
+
+def fg(r, g, b):
+    return f"{ESC}38;2;{r};{g};{b}m"
+
+
+def bg(r, g, b):
+    return f"{ESC}48;2;{r};{g};{b}m"
+
+
+YELLOW = fg(249, 226, 175)
+GREEN = fg(166, 227, 161)
+RED = fg(243, 139, 168)
+BLUE = fg(137, 180, 250)
+MAUVE = fg(203, 166, 247)
+GREY = fg(127, 132, 156)
+TEXT = fg(205, 214, 244)
+TEAL = fg(148, 226, 213)
+
+STATUS_STYLE = {
+    # status: (glyph, colour for glyph+name)
+    "working": ("⠿", YELLOW),
+    "blocked": ("!", RED),
+    "done": ("✓", GREEN),
+    "idle": ("●", GREY),
+    "unknown": ("?", GREY),
+}
+STATUS_ORDER = {"blocked": 0, "working": 1, "done": 2, "idle": 3, "unknown": 4}
+
+# The all-seeing eye: drawn procedurally on a 32x16 pixel grid, supersampled for
+# soft edges, and printed with half-block glyphs (two pixels per character cell).
+EYE_W, EYE_H = 32, 16
+EYE_BG = (30, 30, 46)  # catppuccin base, used to anti-alias edges
+
+
+def _mix(a, b, t):
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+
+
+def _eye_sample(x, y):
+    """(rgb, alpha) of the eye at sub-pixel (x, y)."""
+    dx, dy = x - (EYE_W - 1) / 2, y - (EYE_H - 1) / 2
+    rx, a = 11.5, 5.4
+    lid = a * max(0.0, 1 - (dx / rx) ** 2) ** 0.85 if abs(dx) < rx else -1.0
+
+    if abs(dy) < lid:
+        r, R = math.hypot(dx, dy), 4.5
+        if r < 1.9:  # pupil
+            col = (12, 8, 22)
+        elif r < R:  # iris: amber gradient with radial streaks and a dark limbal ring
+            t = (r - 1.9) / (R - 1.9)
+            ang = math.atan2(dy, dx)
+            streak = 0.5 + 0.5 * math.sin(ang * 13) * math.sin(ang * 5 + 1.3)
+            col = _mix((255, 222, 120), (214, 104, 36), t ** 0.8)
+            col = _mix(col, (255, 245, 190), 0.18 * streak * (1 - t))
+            if r > R - 0.9:
+                col = _mix(col, (70, 28, 16), (r - (R - 0.9)) / 0.9)
+        else:  # sclera, shaded toward the lids and pink in the corners
+            col = _mix((238, 232, 220), (150, 140, 150), (abs(dy) / lid) ** 2.2)
+            edge = abs(dx) / rx
+            if edge > 0.72:
+                col = _mix(col, (214, 150, 160), (edge - 0.72) / 0.28 * 0.7)
+        if math.hypot(dx + 1.5, dy + 1.6) < 0.95:  # catchlights
+            col = (255, 255, 255)
+        elif math.hypot(dx - 1.3, dy - 1.2) < 0.45:
+            col = (255, 236, 210)
+        if dy < -lid + 1.4:  # upper-lid shadow
+            col = _mix(col, (40, 30, 40), 0.45 * (1 - (dy + lid) / 1.4))
+        return col, 1.0
+
+    if lid > -1 and abs(dy) < lid + 1.0:  # golden lid line
+        return ((250, 200, 95) if dy < 0 else (200, 140, 60)), 1.0
+
+    # rays of light, alternating long and short, fanned out wide
+    ex = dx / 1.9
+    rr, ang = math.hypot(ex, dy), math.atan2(dy, ex)
+    n = 16
+    width = abs((ang / (2 * math.pi) * n + 0.5) % 1 - 0.5) * 2
+    long_ray = int((ang / (2 * math.pi) * n + 0.5 + n) % 2) == 0
+    inner, outer = 6.4, (9.2 if long_ray else 8.2)
+    if inner < rr < outer and width < 0.34:
+        fade = 1 - (rr - inner) / (outer - inner)
+        return (249, 210, 120), min(1.0, (1 - width / 0.34) ** 0.7 * (0.25 + 0.75 * fade) * 1.25)
+    return EYE_BG, 0.0
+
+
+def _eye_pixels(ss=4):
+    px = []
+    for y in range(EYE_H):
+        row = []
+        for x in range(EYE_W):
+            acc, cov = [0.0, 0.0, 0.0], 0.0
+            for sy in range(ss):
+                for sx in range(ss):
+                    c, al = _eye_sample(x - 0.5 + (sx + 0.5) / ss, y - 0.5 + (sy + 0.5) / ss)
+                    c = _mix(EYE_BG, c, al)
+                    for i in range(3):
+                        acc[i] += c[i]
+                    cov += al
+            n = ss * ss
+            row.append(None if cov / n < 0.12 else tuple(int(v / n) for v in acc))
+        px.append(row)
+    return px
+
+
+_SPRITE_CACHE = None
+
+
+def sprite_lines():
+    global _SPRITE_CACHE
+    if _SPRITE_CACHE is None:
+        px = _eye_pixels()
+        out = []
+        for top, bot in zip(px[0::2], px[1::2]):
+            line = ""
+            for t, b in zip(top, bot):
+                if t and b:
+                    line += fg(*t) + bg(*b) + "▀" + RESET
+                elif t:
+                    line += fg(*t) + "▀" + RESET
+                elif b:
+                    line += fg(*b) + "▄" + RESET
+                else:
+                    line += " "
+            out.append(line)
+        _SPRITE_CACHE = out
+    return _SPRITE_CACHE
+
+
+def visible_len(s):
+    return len(re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", s))
+
+
+def clip(s, width):
+    """Truncate plain text to width."""
+    if width <= 0:
+        return ""
+    return s if len(s) <= width else s[: max(0, width - 1)] + "…"
+
+
+def fmt_age(seconds):
+    if seconds is None:
+        return ""
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s"
+    if seconds < 3600:
+        return f"{seconds // 60}m"
+    if seconds < 86400:
+        h, m = divmod(seconds // 60, 60)
+        return f"{h}h{m:02d}"
+    return f"{seconds // 86400}d"
+
+
+# ---------------------------------------------------------------- herdr
+
+def herdr(*args, timeout=15):
+    """Run a herdr CLI command; return parsed JSON result (or raise RuntimeError)."""
+    proc = subprocess.run(
+        [HERDR, *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    raw = (proc.stdout or "").strip() or (proc.stderr or "").strip()
+    try:
+        data = json.loads(raw.splitlines()[-1]) if raw else {}
+    except json.JSONDecodeError:
+        raise RuntimeError(raw or f"herdr exited {proc.returncode}")
+    if "error" in data:
+        raise RuntimeError(data["error"].get("message", str(data["error"])))
+    if proc.returncode != 0:
+        raise RuntimeError(raw)
+    return data.get("result", {})
+
+
+def norm_path(p):
+    return os.path.normcase(os.path.normpath(os.path.expanduser(p or ""))).rstrip("\\/")
+
+
+def short_label(path):
+    parts = Path(path).parts
+    return "/".join(parts[-2:]) if len(parts) >= 2 else (parts[-1] if parts else path)
+
+
+STOPWORDS = {"a", "an", "the", "to", "for", "of", "and", "in", "on", "with", "please", "can", "you", "my", "me", "i", "it", "is", "that", "this"}
+
+
+def slugify(text, taken):
+    words = [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOPWORDS]
+    base = "-".join(words[:4])[:28].strip("-") or "task"
+    if not base[0].isalpha():
+        base = "t-" + base
+    name, n = base, 2
+    while name in taken:
+        name = f"{base}-{n}"
+        n += 1
+    return name
+
+
+# ---------------------------------------------------------------- state
+
+class State:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.snapshot = None
+        self.error = None
+        self.messages = []  # (time, text, colour)
+        persisted = {}
+        sources = [STATE_FILE] + ([LEGACY_STATE_FILE] if IS_WINDOWS else [])
+        for src in sources:
+            try:
+                persisted = json.loads(src.read_text(encoding="utf-8"))
+                break
+            except Exception:
+                pass
+        self.who = persisted.get("who", "claude")
+        self.where = persisted.get("where", str(Path.home()))
+        self.next_num = persisted.get("next_num", 1)
+        # pane_id -> {"num", "first_seen", "status", "since"}
+        self.tracked = persisted.get("tracked", {})
+
+    def save(self):
+        with self.lock:
+            data = {
+                "who": self.who,
+                "where": self.where,
+                "next_num": self.next_num,
+                "tracked": self.tracked,
+            }
+        try:
+            STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            STATE_FILE.write_text(json.dumps(data, indent=1), encoding="utf-8")
+        except Exception:
+            pass
+
+    def say(self, text, colour=TEXT):
+        with self.lock:
+            self.messages.append((time.time(), text, colour))
+            self.messages = self.messages[-3:]
+
+
+def poll_loop(state, stop):
+    while not stop.is_set():
+        try:
+            snap = herdr("api", "snapshot")["snapshot"]
+            now = time.time()
+            with state.lock:
+                live = {a["pane_id"] for a in snap.get("agents", [])}
+                # Pane ids are never reused within one server, so drop tracking for panes that are gone.
+                state.tracked = {k: v for k, v in state.tracked.items() if k in live}
+                for a in snap.get("agents", []):
+                    t = state.tracked.get(a["pane_id"])
+                    if t is None:
+                        t = state.tracked[a["pane_id"]] = {
+                            "num": state.next_num, "first_seen": now, "status": a["agent_status"], "since": now,
+                        }
+                        state.next_num += 1
+                    elif t["status"] != a["agent_status"]:
+                        t["status"], t["since"] = a["agent_status"], now
+                state.snapshot = snap
+                state.error = None
+            state.save()
+        except Exception as e:  # noqa: BLE001
+            with state.lock:
+                state.error = str(e)
+        stop.wait(POLL_SECONDS)
+
+
+# ---------------------------------------------------------------- view model
+
+def own_workspace_id():
+    return os.environ.get("HERDR_WORKSPACE_ID")
+
+
+def build_rows(state):
+    """Return (groups, flat) where groups = [(label, [agent rows])] and flat is the selection order."""
+    with state.lock:
+        snap = state.snapshot
+        tracked = dict(state.tracked)
+    if not snap:
+        return [], []
+    me = own_workspace_id()
+    ws_label = {w["workspace_id"]: w.get("label") or w["workspace_id"] for w in snap.get("workspaces", [])}
+    ws_order = {w["workspace_id"]: i for i, w in enumerate(snap.get("workspaces", []))}
+    tab_label = {t["tab_id"]: t.get("label") for t in snap.get("tabs", [])}
+    now = time.time()
+    groups = {}
+    for a in snap.get("agents", []):
+        if a["workspace_id"] == me:
+            continue
+        t = tracked.get(a["pane_id"], {})
+        row = {
+            "num": t.get("num", 0),
+            "pane_id": a["pane_id"],
+            "tab_id": a["tab_id"],
+            "status": a.get("agent_status", "unknown"),
+            "name": a.get("name") or tab_label.get(a["tab_id"]) or a["pane_id"],
+            "kind": a.get("agent", "?"),
+            "title": a.get("terminal_title_stripped") or "",
+            "in_state": now - t["since"] if t else None,
+            "age": now - t["first_seen"] if t else None,
+            "focused": a.get("focused", False),
+        }
+        groups.setdefault(a["workspace_id"], []).append(row)
+    out = []
+    for wid in sorted(groups, key=lambda w: ws_order.get(w, 999)):
+        rows = sorted(groups[wid], key=lambda r: r["num"])
+        out.append((ws_label.get(wid, wid), rows))
+    flat = [r for _, rows in out for r in rows]
+    return out, flat
+
+
+def known_dirs(state):
+    with state.lock:
+        snap = state.snapshot
+    dirs = []
+    if snap:
+        me = own_workspace_id()
+        for p in snap.get("panes", []):
+            if p["workspace_id"] != me and p.get("cwd"):
+                d = os.path.normpath(p["cwd"])
+                if norm_path(d) not in {norm_path(x) for x in dirs}:
+                    dirs.append(d)
+    return dirs
+
+
+# ---------------------------------------------------------------- actions
+
+def spawn(state, task):
+    who, where = state.who, os.path.expanduser(state.where)
+    if not os.path.isdir(where):
+        state.say(f"where: {where} is not a directory", RED)
+        return
+    try:
+        snap = herdr("api", "snapshot")["snapshot"]
+        taken = {a.get("name") for a in snap.get("agents", []) if a.get("name")}
+        name = slugify(task, taken)
+        me = own_workspace_id()
+        target = norm_path(where)
+        wid = next((p["workspace_id"] for p in snap.get("panes", [])
+                    if p["workspace_id"] != me and norm_path(p.get("cwd")) == target), None)
+        state.say(f"spawning {who} '{name}' in {short_label(where)} …", BLUE)
+        if wid is None:
+            res = herdr("workspace", "create", "--cwd", where, "--label", short_label(where), "--no-focus")
+            pane = res["root_pane"]["pane_id"]
+            herdr("tab", "rename", res["tab"]["tab_id"], name)
+        else:
+            res = herdr("tab", "create", "--workspace", wid, "--cwd", where, "--label", name, "--no-focus")
+            pane = res["root_pane"]["pane_id"]
+        # A fresh pane's shell may still be booting; agent start needs it at a prompt.
+        last = None
+        for _ in range(10):
+            try:
+                herdr("agent", "start", name, "--kind", who, "--pane", pane, "--timeout", "60000", timeout=90)
+                break
+            except RuntimeError as e:
+                last = e
+                if "not_ready" in str(e) or "blocked" in str(e):
+                    raise RuntimeError(f"{name} is waiting on a startup prompt — jump in to answer it")
+                time.sleep(1)
+        else:
+            raise last
+        herdr("agent", "prompt", name, task, timeout=30)
+        state.say(f"✓ {name} is on it", GREEN)
+    except Exception as e:  # noqa: BLE001
+        state.say(f"spawn failed: {e}", RED)
+
+
+def focus(state, row):
+    try:
+        herdr("agent", "focus", row["pane_id"])
+    except Exception as e:  # noqa: BLE001
+        state.say(f"focus failed: {e}", RED)
+
+
+def close(state, row):
+    try:
+        herdr("pane", "close", row["pane_id"])
+        state.say(f"closed {row['name']}", GREY)
+    except Exception as e:  # noqa: BLE001
+        state.say(f"close failed: {e}", RED)
+
+
+# ---------------------------------------------------------------- render
+
+def count_box(n, label, colour_bg, colour_fg):
+    return f"{colour_bg}{colour_fg}{BOLD} {n:>3} {RESET} {GREY}{label}{RESET}"
+
+
+def render(state, ui):
+    cols, lines_avail = shutil.get_terminal_size((100, 30))
+    groups, flat = build_rows(state)
+    ui["flat"] = flat
+    if flat:
+        ui["sel"] = max(0, min(ui["sel"], len(flat) - 1))
+
+    counts = {s: 0 for s in STATUS_STYLE}
+    for r in flat:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+
+    out = []
+    sprite = sprite_lines()
+    stats = [
+        "",
+        count_box(len(flat), "agents", bg(205, 214, 244), fg(30, 30, 46)),
+        count_box(counts["working"], "working", bg(249, 226, 175), fg(30, 30, 46)),
+        count_box(counts["blocked"], "blocked", bg(243, 139, 168), fg(30, 30, 46)),
+        count_box(counts["done"] + counts["idle"], "ready", bg(166, 227, 161), fg(30, 30, 46)),
+        "",
+        f"{GREY}who {RESET}{MAUVE}{state.who}{RESET}",
+        f"{GREY}where {RESET}{TEAL}{clip(state.where, max(10, cols - 30))}{RESET}",
+    ]
+    for i in range(len(sprite)):
+        out.append(f" {sprite[i]}  {stats[i] if i < len(stats) else ''}")
+    out.append("")
+
+    with state.lock:
+        err = state.error
+        msgs = [m for m in state.messages if time.time() - m[0] < 12]
+
+    if err:
+        out.append(f" {RED}herdr: {clip(err, cols - 10)}{RESET}")
+    elif not flat:
+        out.append(f" {GREY}no agents yet — type a task below and press enter{RESET}")
+
+    if ui.get("help"):
+        for line in DASH_HELP.splitlines():
+            out.append(f" {GREY}{line}{RESET}")
+        out.append("")
+
+    # agent list
+    name_w = max([len(r["name"]) for r in flat] + [12])
+    name_w = min(name_w, 32)
+    list_lines = []
+    sel_line = 0
+    for label, rows in groups:
+        list_lines.append(f" {GREEN}{BOLD}{label}{RESET} {GREY}· {len(rows)}{RESET}")
+        for r in rows:
+            glyph, colour = STATUS_STYLE.get(r["status"], STATUS_STYLE["unknown"])
+            selected = flat and flat[ui["sel"]] is r
+            if selected:
+                sel_line = len(list_lines)
+            cursor = f"{MAUVE}›{RESET}" if selected else " "
+            name = r["name"].ljust(name_w)[:name_w]
+            name_style = colour if r["status"] in ("working", "done", "blocked") else TEXT
+            if selected:
+                name_style += BOLD
+            fixed = 4 + 1 + 2 + name_w + 1 + 6 + 6 + 1 + 8 + 2
+            title = clip(r["title"], cols - fixed - 1)
+            list_lines.append(
+                f"{cursor}{GREY}{r['num']:>3}{RESET} {colour}{glyph}{RESET} "
+                f"{name_style}{name}{RESET} "
+                f"{YELLOW}{fmt_age(r['in_state']):>5}{RESET} {GREY}{fmt_age(r['age']):>5}{RESET}  "
+                f"{BLUE}{r['kind']:<8}{RESET} {GREY}{title}{RESET}"
+            )
+
+    footer = []
+    for _, text, colour in msgs:
+        footer.append(f" {colour}{clip(text, cols - 2)}{RESET}")
+    footer.append(f"{GREY}{'─' * cols}{RESET}")
+    buf = ui["input"]
+    shown = buf if len(buf) < cols - 4 else "…" + buf[-(cols - 5):]
+    placeholder = f"{GREY}write a task · #N jump · ↑↓ enter · /who /where /x · ? help{RESET}"
+    footer.append(f"{MAUVE}›{RESET} {shown if buf else placeholder}")
+
+    room = max(1, lines_avail - len(out) - len(footer))
+    if len(list_lines) > room:
+        start = min(max(0, sel_line - room // 2), len(list_lines) - room)
+        list_lines = list_lines[start:start + room]
+    body = out + list_lines
+    body += [""] * max(0, lines_avail - len(body) - len(footer))
+    screen = body + footer
+
+    frame = ESC + "H" + "\r\n".join(line + ESC + "K" for line in screen[:lines_avail]) + ESC + "J"
+    cursor_col = 3 + min(len(buf), cols - 4)
+    frame += f"{ESC}{lines_avail};{cursor_col}H"
+    if frame != ui.get("last_frame"):
+        sys.stdout.write(frame)
+        sys.stdout.flush()
+        ui["last_frame"] = frame
+
+
+# ---------------------------------------------------------------- input
+
+def handle_line(state, ui, line):
+    line = line.strip()
+    flat = ui["flat"]
+    by_num = {r["num"]: r for r in flat}
+    if not line:
+        if flat:
+            focus(state, flat[ui["sel"]])
+        return
+    if line in ("?", "/help", "/h"):
+        ui["help"] = not ui.get("help")
+        return
+    if line in ("/q", "/quit", "/exit"):
+        ui["quit"] = True
+        return
+    if line.lstrip("#").isdigit():
+        r = by_num.get(int(line.lstrip("#")))
+        if r:
+            focus(state, r)
+        else:
+            state.say(f"no agent #{line}", RED)
+        return
+    if line.startswith("/who"):
+        kind = line[4:].strip()
+        if kind:
+            state.who = kind
+            state.save()
+        state.say(f"who = {state.who}", MAUVE)
+        return
+    if line.startswith("/where"):
+        path = os.path.expanduser(line[6:].strip().strip('"'))
+        if path and os.path.isdir(path):
+            state.where = os.path.abspath(path)
+            state.save()
+            state.say(f"where = {state.where}", TEAL)
+        else:
+            state.say(f"not a directory: {path}", RED)
+        return
+    if line.startswith("/x"):
+        arg = line[2:].strip().lstrip("#")
+        r = by_num.get(int(arg)) if arg.isdigit() else None
+        if r:
+            close(state, r)
+        else:
+            state.say("usage: /x <number>", RED)
+        return
+    if line.startswith("/"):
+        state.say(f"unknown command {line.split()[0]} — ? for help", RED)
+        return
+    threading.Thread(target=spawn, args=(state, line), daemon=True).start()
+
+
+# ---------------------------------------------------------------- keys
+
+class Keys:
+    """Non-blocking key reader yielding normalised names: up, down, enter, backspace,
+    ctrl+w, ctrl+c, esc, tab, or a single printable character."""
+
+    def __init__(self):
+        self.buf = ""
+        self.saved = None
+        if not IS_WINDOWS and sys.stdin.isatty():
+            self.fd = sys.stdin.fileno()
+            self.saved = termios.tcgetattr(self.fd)
+            tty.setcbreak(self.fd)
+
+    def restore(self):
+        if self.saved is not None:
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
+
+    def poll(self):
+        return self._poll_windows() if IS_WINDOWS else self._poll_posix()
+
+    def _poll_windows(self):
+        out = []
+        while msvcrt.kbhit():
+            ch = msvcrt.getwch()
+            if ch in ("\x00", "\xe0"):
+                out.append({"H": "up", "P": "down"}.get(msvcrt.getwch(), ""))
+            else:
+                out.append(self._simple(ch))
+        return [k for k in out if k]
+
+    def _poll_posix(self):
+        while select.select([sys.stdin], [], [], 0)[0]:
+            data = os.read(self.fd, 1024)
+            if not data:
+                break
+            self.buf += data.decode("utf-8", errors="replace")
+        out = []
+        while self.buf:
+            for seq, name in (("\x1b[A", "up"), ("\x1bOA", "up"), ("\x1b[B", "down"), ("\x1bOB", "down")):
+                if self.buf.startswith(seq):
+                    out.append(name)
+                    self.buf = self.buf[len(seq):]
+                    break
+            else:
+                if self.buf.startswith("\x1b[") or self.buf.startswith("\x1bO"):
+                    m = re.match(r"\x1b[\[O][0-9;]*[A-Za-z~]", self.buf)
+                    if not m:
+                        break  # incomplete escape sequence; wait for the rest
+                    self.buf = self.buf[m.end():]  # ignore other sequences
+                    continue
+                ch, self.buf = self.buf[0], self.buf[1:]
+                out.append(self._simple(ch))
+        return [k for k in out if k]
+
+    @staticmethod
+    def _simple(ch):
+        return {"\r": "enter", "\n": "enter", "\x08": "backspace", "\x7f": "backspace",
+                "\x17": "ctrl+w", "\x1b": "esc", "\t": "tab", "\x03": "ctrl+c"}.get(
+                    ch, ch if ch.isprintable() else "")
+
+
+def handle_key(state, ui, key):
+    if key == "up" and ui["flat"]:
+        ui["sel"] = max(0, ui["sel"] - 1)
+    elif key == "down" and ui["flat"]:
+        ui["sel"] = min(len(ui["flat"]) - 1, ui["sel"] + 1)
+    elif key == "enter":
+        line, ui["input"] = ui["input"], ""
+        handle_line(state, ui, line)
+    elif key == "backspace":
+        ui["input"] = ui["input"][:-1]
+    elif key == "ctrl+w":
+        ui["input"] = re.sub(r"\S*\s*$", "", ui["input"])
+    elif key == "esc":
+        ui["input"] = ""
+        ui["help"] = False
+    elif key == "tab":
+        dirs = known_dirs(state)
+        if dirs:
+            cur = norm_path(state.where)
+            idx = next((i for i, d in enumerate(dirs) if norm_path(d) == cur), -1)
+            state.where = dirs[(idx + 1) % len(dirs)]
+            state.save()
+    elif key == "ctrl+c":
+        ui["quit"] = True
+    elif len(key) == 1:
+        ui["input"] += key
+
+
+# ---------------------------------------------------------------- commands
+
+def dash():
+    if os.environ.get("HERDR_ENV") != "1":
+        print("herd dash must run inside a herdr pane (start everything with `herd`).")
+        sys.exit(1)
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    if IS_WINDOWS:
+        os.system("")  # enable VT processing on Windows consoles
+    state = State()
+    stop = threading.Event()
+    threading.Thread(target=poll_loop, args=(state, stop), daemon=True).start()
+    ui = {"input": "", "sel": 0, "flat": [], "quit": False}
+    keys = Keys()
+    sys.stdout.write(ESC + "?1049h" + ESC + "2J")
+    try:
+        while not ui["quit"]:
+            for key in keys.poll():
+                handle_key(state, ui, key)
+            render(state, ui)
+            time.sleep(0.03)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        keys.restore()
+        stop.set()
+        state.save()
+        sys.stdout.write(RESET + ESC + "?1049l")
+        sys.stdout.flush()
+
+
+def dash_workspace(snap):
+    return next((w for w in snap.get("workspaces", []) if w.get("label") == DASH_LABEL), None)
+
+
+def focus_dashboard():
+    ws = dash_workspace(herdr("api", "snapshot")["snapshot"])
+    if ws:
+        herdr("workspace", "focus", ws["workspace_id"])
+
+
+def server_running():
+    try:
+        out = subprocess.run([HERDR, "status", "server"], capture_output=True, text=True, timeout=10).stdout
+    except Exception:
+        return False
+    return "status: running" in out
+
+
+def start():
+    if not server_running():
+        env = dict(os.environ)
+        # Every pane inherits the server's environment; don't leak colour/prompt suppression into it.
+        for v in ("NO_COLOR", "GIT_TERMINAL_PROMPT", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"):
+            env.pop(v, None)
+        kwargs = dict(env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if IS_WINDOWS:
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+        else:
+            kwargs["start_new_session"] = True
+        subprocess.Popen([HERDR, "server"], **kwargs)
+        for _ in range(50):
+            if server_running():
+                break
+            time.sleep(0.2)
+    snap = herdr("api", "snapshot")["snapshot"]
+    ws = dash_workspace(snap)
+    if ws is None:
+        res = herdr("workspace", "create", "--cwd", str(Path.home()), "--label", DASH_LABEL, "--focus")
+        time.sleep(1.5)  # let the pane shell reach its prompt
+        herdr("pane", "run", res["root_pane"]["pane_id"], "herd dash")
+    else:
+        herdr("workspace", "focus", ws["workspace_id"])
+    if os.environ.get("HERDR_ENV") != "1":
+        sys.exit(subprocess.call([HERDR]))
+
+
+# ---------------------------------------------------------------- setup
+
+GENERATED_MARK = "# Generated by `herd setup`"
+
+
+def render_herdr_config():
+    src = MODULE_DIR / "herdr"
+    parts = [src / "base.toml", src / f"{PLATFORM}.toml"]
+    header = (f"{GENERATED_MARK} from ~/dotfiles/herd/herdr/base.toml + {PLATFORM}.toml.\n"
+              "# Don't edit this file: change those, then run `herd setup`.\n\n")
+    return header + "\n".join(p.read_text(encoding="utf-8").strip() + "\n" for p in parts if p.is_file())
+
+
+def backup(path):
+    dest = path.with_name(f"{path.name}.bak-{int(time.time())}")
+    shutil.copy2(path, dest)
+    return dest
+
+
+def setup_herdr_config():
+    target = herdr_config_dir() / "config.toml"
+    want = render_herdr_config()
+    have = target.read_text(encoding="utf-8") if target.is_file() else None
+    if have == want:
+        print(f"herdr config: up to date ({target})")
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if have is not None:
+        print(f"herdr config: backed up previous config to {backup(target)}")
+    target.write_text(want, encoding="utf-8", newline="\n")
+    print(f"herdr config: wrote {target}")
+    if server_running():
+        subprocess.run([HERDR, "server", "reload-config"], capture_output=True)
+        print("herdr config: reloaded running server")
+
+
+def handy_paths():
+    """(app, settings store) for this OS."""
+    if IS_WINDOWS:
+        return (Path(os.environ["LOCALAPPDATA"]) / "Handy/handy.exe",
+                Path(os.environ["APPDATA"]) / "com.pais.handy/settings_store.json")
+    if PLATFORM == "macos":
+        return (Path("/Applications/Handy.app"),
+                Path.home() / "Library/Application Support/com.pais.handy/settings_store.json")
+    return (Path(shutil.which("handy") or "/usr/bin/handy"),
+            Path.home() / ".local/share/com.pais.handy/settings_store.json")
+
+
+def handy_running():
+    if IS_WINDOWS:
+        out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq handy.exe", "/NH"],
+                             capture_output=True, text=True).stdout
+        return "handy.exe" in out.lower()
+    return subprocess.run(["pgrep", "-xi", "handy"], capture_output=True).returncode == 0
+
+
+def handy_stop():
+    if IS_WINDOWS:
+        subprocess.run(["taskkill", "/IM", "handy.exe", "/F"], capture_output=True)
+    elif PLATFORM == "macos":
+        subprocess.run(["osascript", "-e", 'quit app "Handy"'], capture_output=True)
+    else:
+        subprocess.run(["pkill", "-xi", "handy"], capture_output=True)
+    for _ in range(50):
+        if not handy_running():
+            return
+        time.sleep(0.2)
+
+
+def handy_start():
+    app, _ = handy_paths()
+    if IS_WINDOWS:
+        subprocess.Popen([str(app)], creationflags=subprocess.DETACHED_PROCESS)
+    elif PLATFORM == "macos":
+        subprocess.run(["open", "-a", "Handy"])
+    else:
+        subprocess.Popen([str(app)], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def install_handy():
+    app, _ = handy_paths()
+    if app.exists():
+        return True
+    if IS_WINDOWS:
+        cmd = ["winget", "install", "--id", "cjpais.Handy", "-e",
+               "--accept-source-agreements", "--accept-package-agreements"]
+    elif PLATFORM == "macos":
+        cmd = ["brew", "install", "--cask", "handy"]
+    else:
+        print("voice: install Handy from https://handy.computer (no package recipe for Linux here yet)")
+        return False
+    print("voice: installing Handy:", " ".join(cmd))
+    return subprocess.run(cmd).returncode == 0 and app.exists()
+
+
+def setup_voice():
+    if not install_handy():
+        return
+    _, settings = handy_paths()
+    if not settings.is_file():
+        print("voice: open Handy once and finish onboarding (model + permissions), then run `herd setup` again")
+        return
+    wanted = json.loads((MODULE_DIR / "voice/handy.json").read_text(encoding="utf-8"))
+    overrides = dict(wanted.get("all", {}))
+    overrides.update(wanted.get(PLATFORM, {}))
+    store = json.loads(settings.read_text(encoding="utf-8"))
+    cur = store.setdefault("settings", {})
+    changes = []
+    for key, val in overrides.items():
+        if key.startswith("_"):
+            continue
+        if key == "bindings":
+            for bid, combo in val.items():
+                b = cur.get("bindings", {}).get(bid)
+                if b and b.get("current_binding") != combo:
+                    changes.append(f"{bid}: {b.get('current_binding')} -> {combo}")
+                    b["current_binding"] = combo
+        elif cur.get(key) != val:
+            changes.append(f"{key}: {json.dumps(cur.get(key))} -> {json.dumps(val)}")
+            cur[key] = val
+    if not changes:
+        print("voice: Handy settings up to date")
+        return
+    running = handy_running()
+    if running:
+        handy_stop()  # Handy rewrites its store on exit, so edit it while stopped
+    backup(settings)
+    settings.write_text(json.dumps(store, indent=2), encoding="utf-8")
+    for c in changes:
+        print(f"voice: {c}")
+    if running:
+        handy_start()
+        print("voice: restarted Handy")
+
+
+def setup():
+    setup_herdr_config()
+    setup_voice()
+
+
+def update():
+    print(f"dotfiles: pulling {DOTFILES_DIR}")
+    if subprocess.run(["git", "-C", str(DOTFILES_DIR), "pull", "--ff-only"]).returncode != 0:
+        print("dotfiles: pull failed (local changes or diverged history); fix that and re-run `herd update`")
+        sys.exit(1)
+    subprocess.run([sys.executable, str(Path(__file__).resolve()), "setup"])  # run the freshly pulled herd
+    print("herdr: checking for updates")
+    subprocess.run([HERDR, "update"])
+    print("herdr: a running server keeps its old version until it restarts "
+          "(`herdr update --handoff` tries a live handoff)")
+    if IS_WINDOWS:
+        subprocess.run(["winget", "upgrade", "--id", "cjpais.Handy", "-e",
+                        "--accept-source-agreements", "--accept-package-agreements"])
+    else:
+        print("voice: Handy updates itself")
+
+
+def doctor():
+    def show(k, v):
+        print(f"{k:<16} {v}")
+    show("platform", PLATFORM)
+    show("module", MODULE_DIR)
+    show("herdr", HERDR)
+    try:
+        show("herdr version", subprocess.run([HERDR, "--version"], capture_output=True, text=True).stdout.strip())
+    except Exception as e:  # noqa: BLE001
+        show("herdr version", f"error: {e}")
+    show("herdr server", "running" if server_running() else "stopped")
+    cfg = herdr_config_dir() / "config.toml"
+    have = cfg.read_text(encoding="utf-8") if cfg.is_file() else None
+    show("herdr config", f"{cfg} ({'up to date' if have == render_herdr_config() else 'needs `herd setup`'})")
+    show("state", STATE_FILE)
+    app, settings = handy_paths()
+    show("handy", f"{app} ({'installed' if app.exists() else 'missing'}, "
+                  f"{'running' if handy_running() else 'not running'})")
+    if settings.is_file():
+        b = json.loads(settings.read_text(encoding="utf-8")).get("settings", {}).get("bindings", {})
+        show("handy shortcut", b.get("transcribe", {}).get("current_binding"))
+    else:
+        show("handy settings", f"{settings} (not created yet: finish Handy onboarding)")
+
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "start"
+    if cmd == "--focus":  # spelling used by older herdr keybindings
+        cmd = "focus"
+    actions = {"start": start, "dash": dash, "focus": focus_dashboard, "setup": setup,
+               "update": update, "doctor": doctor}
+    if cmd in ("-h", "--help", "help") or cmd not in actions:
+        print(__doc__.strip())
+        sys.exit(0 if cmd in ("-h", "--help", "help") else 2)
+    actions[cmd]()
+
+
+if __name__ == "__main__":
+    main()

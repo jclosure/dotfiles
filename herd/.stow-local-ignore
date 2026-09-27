@@ -1,0 +1,4 @@
+# Only .local/bin is linked into $HOME; herdr/ and voice/ are read by `herd setup`.
+^/README\.md$
+^/herdr$
+^/voice$

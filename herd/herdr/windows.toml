@@ -1,0 +1,3 @@
+[terminal]
+# herdr falls back to $SHELL then /bin/sh, neither of which exists on Windows
+default_shell = "pwsh.exe"

@@ -1,0 +1,39 @@
+# Shared herdr config for every OS. `herd setup` joins this with <os>.toml into
+# herdr's config.toml (%APPDATA%\herdr on Windows, ~/.config/herdr elsewhere).
+# Keep [terminal] out of this file: OS files own it.
+# Defaults: `herdr --default-config`. Reload after `herd setup`: prefix+shift+r.
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[keys]
+# prefix stays ctrl+b
+focus_agent = "alt+1..9"          # alt+N jumps straight to agent row N
+previous_agent = "prefix+alt+k"
+next_agent = "prefix+alt+j"
+
+# Back to the dashboard from anywhere
+[[keys.command]]
+key = "f1"
+type = "shell"
+command = "herd focus"
+
+[[keys.command]]
+key = "prefix+a"
+type = "shell"
+command = "herd focus"
+
+[ui]
+# agents panel as an attention queue (blocked first)
+agent_panel_sort = "priority"
+status_indicators = "symbols"
+# every dashboard-spawned agent is alone in its tab; keep the bar so the hint shows
+hide_tab_bar_when_single_tab = false
+tab_bar_right = [{ type = "text", text = "F1 ◂ shepherd" }]
+
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
+
+[ui.toast]
+delivery = "herdr"
