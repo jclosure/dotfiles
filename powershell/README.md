@@ -22,8 +22,10 @@ main shell. The same profile also works in the built-in Windows PowerShell
   the cursor. Right arrow, End or Ctrl+E at the end of the line accepts it
   all; Alt+F, Alt+Right or Ctrl+Right accepts one word. Suggestions only
   turn on in a real console, because PSReadLine errors on redirected output.
-  The command (first word) isn't colored yellow while you type; it's drawn
-  like the rest of the line.
+  No syntax coloring while you type, like our zsh: commands, `--parameters`,
+  strings and so on are all plain text, so only the suggestion is gray.
+  PSReadLine's default colors parameters the same gray as the suggestion,
+  which made accepted text look like it was still a suggestion.
 - **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type
   to fuzzy-filter your history, and Enter puts the command on the prompt.
 - **zle-style editing**, matching `zsh/init.zsh` and

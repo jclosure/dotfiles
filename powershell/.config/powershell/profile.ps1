@@ -43,9 +43,18 @@ if (-not [Console]::IsOutputRedirected) {
     Set-PSReadLineOption -PredictionSource None
 }
 
-# Don't color the command (first word) yellow as you type; draw it like any
-# other text, as zsh does without syntax highlighting.
-Set-PSReadLineOption -Colors @{ Command = (Get-PSReadLineOption).DefaultTokenColor }
+# No syntax coloring while typing, like our zsh (no zsh-syntax-highlighting):
+# everything you type is plain text and only the inline suggestion is gray.
+# PSReadLine colors parameters (--foo) and operators dark gray (\e[90m), the
+# same gray as the suggestion, so accepted text looked still-unaccepted; the
+# command (first word) was yellow. Selection/search/error colors are kept.
+$plain = (Get-PSReadLineOption).DefaultTokenColor
+Set-PSReadLineOption -Colors @{
+    Command = $plain; Parameter = $plain; Operator = $plain; Variable = $plain
+    String = $plain; Number = $plain; Member = $plain; Type = $plain
+    Keyword = $plain; Comment = $plain
+}
+Remove-Variable plain
 
 # ---------------------------------------------------------------------------
 # zle-style line editing, mirroring zsh/init.zsh + zsh/clipboard_wrapper.zsh
