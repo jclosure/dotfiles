@@ -54,6 +54,14 @@ Set-PSReadLineOption -PredictionSource None
 # Windows PowerShell 5.1 would misread them in this BOM-less UTF-8 file.)
 Set-PSReadLineOption -WordDelimiters (":,\|+'`"@``" + [char]0x2013 + [char]0x2014 + [char]0x2015)
 
+# Region color, Emacs-style: a color clearly different from the cursor.
+# PSReadLine's default (black on light gray, \e[30;47m) is almost the
+# terminal's block-cursor color, so the character under the cursor lost
+# its highlight and turned black. Bright white on blue (#264F78, VS Code's
+# selection blue) keeps the whole region visible, and the cursor cell shows
+# as the light cursor block on top. ([char]27 instead of `e so 5.1 can read it.)
+Set-PSReadLineOption -Colors @{ Selection = "$([char]27)[97;48;2;38;79;120m" }
+
 # Region state. PSReadLine only has Shift+arrow selection, not a sticky
 # mark, so Ctrl+Space turns movement keys into their Select* counterparts
 # until the region is used, cancelled, or edited away.

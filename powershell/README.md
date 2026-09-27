@@ -30,6 +30,11 @@ main shell. The same profile also works in the built-in Windows PowerShell
   | Alt+W (or Alt+Shift+W) | Copy the region to the system clipboard |
   | Ctrl+Y | Paste from the system clipboard |
 
+  The region is drawn bright white on blue (`#264F78`), Emacs-style, so the
+  whole region stays visible and the character under the cursor shows as the
+  cursor block on top. PSReadLine's default, black on light gray, is almost
+  the cursor's color, so that character turned black.
+
   With no region, Ctrl+W and Alt+W act from the start of the line to the
   cursor, like zle's `kill-region` with the mark at its default of 0. Other
   Emacs keys (Ctrl+K, Alt+D, Alt+Backspace, Alt+Y, ...) are PSReadLine's
