@@ -94,8 +94,13 @@ main shell. The same profile also works in the built-in Windows PowerShell
 
    ```powershell
    New-Item -ItemType Directory -Force (Split-Path $PROFILE) | Out-Null
-   Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'
+   Set-Content $PROFILE '. "$HOME\dotfiles\powershell\.config\powershell\profile.ps1"'
    ```
+
+   Use the real `~/dotfiles/...` path rather than the stowed
+   `~/.config/powershell/profile.ps1` symlink. Local interactive shells can
+   follow the symlink, but Windows OpenSSH sessions may reject it as an
+   "untrusted mount point" and then the prompt/profile will not load.
 
    Leave any sibling `profile.ps1` (all hosts) alone. `conda init`, for
    example, manages its own block there, and it's machine-specific.
@@ -115,6 +120,52 @@ main shell. The same profile also works in the built-in Windows PowerShell
    ```json
    "terminal.integrated.fontFamily": "JetBrainsMono NFM"
    ```
+
+## SSH into Windows from the Mac
+
+For passwordless SSH from `loops-mac-mini`/macOS into this Windows machine,
+there are two Windows OpenSSH quirks to remember:
+
+1. **Admin users do not use `~/.ssh/authorized_keys`.** If the Windows user is
+   in the local Administrators group, OpenSSH uses this file instead:
+
+   ```text
+   C:\ProgramData\ssh\administrators_authorized_keys
+   ```
+
+   Copy the same keys there and lock the ACL down from an elevated PowerShell:
+
+   ```powershell
+   Copy-Item $HOME\.ssh\authorized_keys $env:ProgramData\ssh\administrators_authorized_keys -Force
+   icacls $env:ProgramData\ssh\administrators_authorized_keys /inheritance:r
+   icacls $env:ProgramData\ssh\administrators_authorized_keys /grant:r 'Administrators:F' 'SYSTEM:F'
+   icacls $env:ProgramData\ssh\administrators_authorized_keys /remove:g $env:USERNAME
+   ```
+
+2. **Set the SSH default shell to PowerShell 7.** Otherwise SSH lands in the
+   stock Windows shell/Windows PowerShell experience rather than the configured
+   PowerShell 7 prompt:
+
+   ```powershell
+   $pwsh = (Get-Command pwsh.exe).Source
+   New-Item HKLM:\SOFTWARE\OpenSSH -Force | Out-Null
+   New-ItemProperty HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $pwsh -PropertyType String -Force | Out-Null
+   New-ItemProperty HKLM:\SOFTWARE\OpenSSH -Name DefaultShellCommandOption -Value '-c' -PropertyType String -Force | Out-Null
+   Restart-Service sshd -Force
+   ```
+
+Also keep the `$PROFILE` loader and Oh My Posh config path pointed at the real
+`$HOME\dotfiles\...` files, not the stowed `~/.config/...` symlinks; SSH
+sessions can fail to traverse those symlinks as untrusted mount points.
+
+Quick remote test from the Mac:
+
+```sh
+ssh joel_@singulator.local '$PSVersionTable.PSVersion.ToString(); (Get-Command prompt).Definition'
+```
+
+It should report PowerShell 7 and the `prompt` function should contain
+Oh My Posh code.
 
 ## Customizing
 

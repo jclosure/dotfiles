@@ -19,7 +19,7 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 # https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/robbyrussell.omp.json
 # customized with a Windows logo + hostname before the arrow (logo needs a Nerd Font).
 if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
-    oh-my-posh init pwsh --config "$HOME\.config\oh-my-posh\robbyrussell.omp.json" | Invoke-Expression
+    oh-my-posh init pwsh --config "$HOME\dotfiles\powershell\.config\oh-my-posh\robbyrussell.omp.json" | Invoke-Expression
 }
 
 Import-Module posh-git         # git tab completion
