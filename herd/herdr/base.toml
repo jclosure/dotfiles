@@ -5,7 +5,7 @@
 onboarding = false
 
 [theme]
-name = "catppuccin"
+name = "terminal"          # use the host terminal palette (cmux: Modus Vivendi)
 
 [keys]
 # prefix stays ctrl+b
@@ -18,6 +18,10 @@ focus_pane_left = "shift+left"
 focus_pane_down = "shift+down"
 focus_pane_up = "shift+up"
 focus_pane_right = "shift+right"
+# emacs-style list movement, only while the sidebar list is open (prefix+w);
+# everywhere else ctrl+n/p go to the terminal untouched
+navigate_workspace_up = ["up", "ctrl+p"]
+navigate_workspace_down = ["down", "ctrl+n"]
 
 # Back to the dashboard from anywhere
 [[keys.command]]
