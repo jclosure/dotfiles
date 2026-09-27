@@ -7,7 +7,7 @@
   },
   "windows": {
     "bindings": {
-      "transcribe": "ctrl+space",
+      "transcribe": "ctrl+shift+space",
       "cancel": "escape"
     }
   },
@@ -19,9 +19,9 @@
   },
   "linux": {
     "bindings": {
-      "transcribe": "ctrl+space",
+      "transcribe": "ctrl+shift+space",
       "cancel": "escape"
     }
   },
-  "wayland_shortcut": "ctrl+space"
+  "wayland_shortcut": "ctrl+shift+space"
 }

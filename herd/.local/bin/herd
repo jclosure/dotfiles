@@ -1043,7 +1043,7 @@ def voice_config():
     wanted = json.loads((MODULE_DIR / "voice/handy.json").read_text(encoding="utf-8"))
     overrides = dict(wanted.get("all", {}))
     overrides.update(wanted.get(PLATFORM, {}))
-    return overrides, wanted.get("wayland_shortcut", "ctrl+space")
+    return overrides, wanted.get("wayland_shortcut", "ctrl+shift+space")
 
 
 def setup_voice():

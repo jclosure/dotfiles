@@ -113,10 +113,10 @@ nothing is submitted until you press Enter.
 
 | OS | Shortcut | How it's triggered |
 |---|---|---|
-| Windows | **Ctrl+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut |
+| Windows | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut |
 | macOS | **Option+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut. Ctrl+Space is macOS's input-source switcher. |
-| Linux, X11 | **Ctrl+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut; text typed with `xdotool` |
-| Linux, Wayland | **Ctrl+Space**: tap to start, tap again to stop | Wayland doesn't let apps grab global keys, so the **desktop** runs `handy --toggle-transcription`. `herd setup` adds this shortcut to **COSMIC** automatically. On GNOME or KDE it prints the one shortcut to add by hand. Text is typed with `wtype`. |
+| Linux, X11 | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut; text typed with `xdotool` |
+| Linux, Wayland | **Ctrl+Shift+Space**: tap to start, tap again to stop | Wayland doesn't let apps grab global keys, so the **desktop** runs `handy --toggle-transcription`. `herd setup` adds this shortcut to **COSMIC** automatically. On GNOME or KDE it prints the one shortcut to add by hand. Text is typed with `wtype`. |
 
 ### What `herd setup` does for voice
 
