@@ -50,10 +50,24 @@ main shell. The same profile also works in the built-in Windows PowerShell
   Emacs keys (Ctrl+K, Alt+D, Alt+Backspace, Alt+Y, ...) are PSReadLine's
   Emacs defaults. zsh's `ESC o` (show buffers) isn't ported.
 
-  Windows Terminal binds Alt+Left/Right to "move focus to pane" by default,
-  so they never reach the shell. Unbind them in Terminal's `settings.json`
-  (`"keybindings"`): `{ "id": null, "keys": "alt+left" }` and
-  `{ "id": null, "keys": "alt+right" }`. Alt+Up/Down still move pane focus.
+  Windows Terminal binds Alt+Arrow to "move focus to pane" by default, so
+  Alt+Left/Right never reach the shell. We move pane focus to
+  **Ctrl+Alt+Arrow** and free Alt+Arrow, in Terminal's `settings.json`
+  (`"keybindings"`):
+
+  ```json
+  { "id": null, "keys": "alt+left" },
+  { "id": null, "keys": "alt+right" },
+  { "id": null, "keys": "alt+up" },
+  { "id": null, "keys": "alt+down" },
+  { "id": "Terminal.MoveFocusLeft", "keys": "ctrl+alt+left" },
+  { "id": "Terminal.MoveFocusRight", "keys": "ctrl+alt+right" },
+  { "id": "Terminal.MoveFocusUp", "keys": "ctrl+alt+up" },
+  { "id": "Terminal.MoveFocusDown", "keys": "ctrl+alt+down" },
+  ```
+
+  (Ctrl+Alt+Left was Terminal's default for "focus the previous pane"; that
+  command is still in the command palette, Ctrl+Shift+P.)
 
 | File | Stowed to |
 |------|-----------|
