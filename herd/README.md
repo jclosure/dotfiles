@@ -118,6 +118,32 @@ nothing is submitted until you press Enter.
 | Linux, X11 | **Ctrl+Shift+Space**, hold to talk (or tap to toggle) | Handy's own global shortcut; text typed with `xdotool` |
 | Linux, Wayland | **Ctrl+Shift+Space**: tap to start, tap again to stop | Wayland doesn't let apps grab global keys, so the **desktop** runs `handy --toggle-transcription`. `herd setup` adds this shortcut to **COSMIC** automatically. On GNOME or KDE it prints the one shortcut to add by hand. Text is typed with `wtype`. |
 
+### Using it: tap to start, tap to stop
+
+This works the same on every machine. On macOS, use Option+Space instead of
+Ctrl+Shift+Space.
+
+1. **Click where the text should go.** For example, the dashboard's task
+   prompt, an agent's input box, an editor or a browser field.
+2. **Press Ctrl+Shift+Space once and let go.** Handy starts recording. Its
+   small overlay or tray icon shows that it's listening.
+3. **Speak.** Pausing is fine; it keeps recording until you stop it.
+4. **Press Ctrl+Shift+Space again.** Handy stops, transcribes on your machine
+   and types the text at your cursor. Longer recordings take longer.
+5. **Check the text and press Enter yourself.** Handy never submits anything.
+
+To throw a recording away instead, press **Escape** while it's recording
+(Windows, macOS and Linux X11). On Wayland Handy can't catch Escape globally,
+so press Ctrl+Shift+Space to stop and delete the text it types.
+
+On Windows, macOS and Linux X11 you can also **hold** the shortcut while you
+talk and let go when you're done. Holding doesn't work on Linux Wayland; use
+tap to start and tap to stop.
+
+If nothing happens, see [Troubleshooting](#troubleshooting). The usual causes
+are that Handy's first-run setup isn't finished, it has no microphone
+permission, or the shortcut isn't bound.
+
 ### What `herd setup` does for voice
 
 1. **Installs Handy if it's missing:**
