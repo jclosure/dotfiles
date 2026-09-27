@@ -900,10 +900,12 @@ def linux_session():
     """{'type': 'wayland'|'x11'|'', 'desktop': 'COSMIC'|'GNOME'|...}"""
     env = dict(os.environ)
     if shutil.which("systemctl"):
+        # The desktop session's values win: over ssh our own XDG_SESSION_TYPE is "tty".
         out = subprocess.run(["systemctl", "--user", "show-environment"], capture_output=True, text=True).stdout
         for line in out.splitlines():
             k, _, v = line.partition("=")
-            env.setdefault(k, v)
+            if k in ("XDG_SESSION_TYPE", "XDG_CURRENT_DESKTOP", "WAYLAND_DISPLAY", "DISPLAY") and v:
+                env[k] = v
     kind = env.get("XDG_SESSION_TYPE", "")
     if not kind:
         kind = "wayland" if env.get("WAYLAND_DISPLAY") else ("x11" if env.get("DISPLAY") else "")
@@ -1145,6 +1147,10 @@ Docs: ~/dotfiles/herd/README.md"""
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(line_buffering=True)  # keep our lines in order with child process output
+    except Exception:
+        pass
     cmd = sys.argv[1] if len(sys.argv) > 1 else "start"
     if cmd == "--focus":  # spelling used by older herdr keybindings
         cmd = "focus"
