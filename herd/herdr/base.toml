@@ -10,8 +10,14 @@ name = "catppuccin"
 [keys]
 # prefix stays ctrl+b
 focus_agent = "alt+1..9"          # alt+N jumps straight to agent row N
-previous_agent = "prefix+alt+k"
-next_agent = "prefix+alt+j"
+# option+shift+up/down: previous/next agent in sidebar order, skipping panes
+previous_agent = ["prefix+alt+k", "alt+shift+up"]
+next_agent = ["prefix+alt+j", "alt+shift+down"]
+# windmove-style pane focus (prefix+h/j/k/l replaced)
+focus_pane_left = "shift+left"
+focus_pane_down = "shift+down"
+focus_pane_up = "shift+up"
+focus_pane_right = "shift+right"
 
 # Back to the dashboard from anywhere
 [[keys.command]]
