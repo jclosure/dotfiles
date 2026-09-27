@@ -1,0 +1,3 @@
+# herd is a sh/python polyglot: CRLF would break its sh stub in Git Bash
+herd/.local/bin/herd text eol=lf
+*.cmd text eol=crlf
