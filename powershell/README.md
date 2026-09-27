@@ -19,6 +19,26 @@ main shell. The same profile also works in the built-in Windows PowerShell
 - **PSReadLine 2.2+**: Emacs key bindings, with no as-you-type suggestions.
 - **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type
   to fuzzy-filter your history, and Enter puts the command on the prompt.
+- **zle-style editing**, matching `zsh/init.zsh` and
+  `zsh/clipboard_wrapper.zsh` (with `zsh-delsel-mode`):
+
+  | Key | Does |
+  |-----|------|
+  | Alt+Left / Alt+Right (also Alt+b / Alt+f, Ctrl+Left / Ctrl+Right) | Word left / right. Word boundaries follow zsh's default `WORDCHARS`, so `~/dotfiles/emacs-ide` is one word |
+  | Ctrl+Space | Set the mark. Movement keys then extend a highlighted region; typing or Backspace replaces or deletes it. Ctrl+Space again starts a new region, and Ctrl+G cancels |
+  | Ctrl+W | Cut the region to the system clipboard |
+  | Alt+W (or Alt+Shift+W) | Copy the region to the system clipboard |
+  | Ctrl+Y | Paste from the system clipboard |
+
+  With no region, Ctrl+W and Alt+W act from the start of the line to the
+  cursor, like zle's `kill-region` with the mark at its default of 0. Other
+  Emacs keys (Ctrl+K, Alt+D, Alt+Backspace, Alt+Y, ...) are PSReadLine's
+  Emacs defaults. zsh's `ESC o` (show buffers) isn't ported.
+
+  Windows Terminal binds Alt+Left/Right to "move focus to pane" by default,
+  so they never reach the shell. Unbind them in Terminal's `settings.json`
+  (`"keybindings"`): `{ "id": null, "keys": "alt+left" }` and
+  `{ "id": null, "keys": "alt+right" }`. Alt+Up/Down still move pane focus.
 
 | File | Stowed to |
 |------|-----------|
