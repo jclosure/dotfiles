@@ -1,6 +1,7 @@
 {
   "Badge Text" : "\\(user.tag)",
   "ASCII Ligatures" : true,
+  "Non-ASCII Ligatures" : false,
   "Working Directory" : "\/Users\/jholder",
   "Prompt Before Closing 2" : false,
   "Selected Text Color" : {
@@ -67,7 +68,7 @@
     "Blue Component" : 0
   },
   "Icon" : 0,
-  "Use Non-ASCII Font" : false,
+  "Use Non-ASCII Font" : true,
   "Shortcut" : "",
   "Background Image Location" : "",
   "Bold Color" : {
@@ -353,7 +354,7 @@
     "Blue Component" : 0
   },
   "Blur" : false,
-  "Normal Font" : "Monaco 14",
+  "Normal Font" : "Monaco 16",
   "Application Keypad Allowed" : false,
   "Vertical Spacing" : 1,
   "Ansi 7 Color" : {
@@ -386,7 +387,8 @@
   "Bound Hosts" : [
 
   ],
-  "Non Ascii Font" : "Monaco 12",
+  "Non Ascii Font" : "SymbolsNFM 16",
+  "Special Font Config" : "{\"entries\":[{\"fontName\":\"SymbolsNF\",\"count\":4,\"start\":9211},{\"fontName\":\"SymbolsNF\",\"count\":1,\"start\":9829},{\"fontName\":\"SymbolsNF\",\"count\":1,\"start\":9889},{\"fontName\":\"SymbolsNF\",\"count\":6,\"start\":10092},{\"fontName\":\"SymbolsNF\",\"count\":11,\"start\":57344},{\"fontName\":\"SymbolsNF\",\"count\":4,\"start\":57504},{\"fontName\":\"SymbolsNF\",\"count\":25,\"start\":57520},{\"fontName\":\"SymbolsNF\",\"count\":1,\"start\":57546},{\"fontName\":\"SymbolsNF\",\"count\":7,\"start\":57548},{\"fontName\":\"SymbolsNF\",\"count\":1,\"start\":57556},{\"fontName\":\"SymbolsNF\",\"count\":2,\"start\":57558},{\"fontName\":\"SymbolsNF\",\"count\":170,\"start\":57856},{\"fontName\":\"SymbolsNF\",\"count\":228,\"start\":58112},{\"fontName\":\"SymbolsNF\",\"count\":191,\"start\":58874},{\"fontName\":\"SymbolsNF\",\"count\":496,\"start\":59136},{\"fontName\":\"SymbolsNF\",\"count\":447,\"start\":60000},{\"fontName\":\"SymbolsNF\",\"count\":719,\"start\":60672},{\"fontName\":\"SymbolsNF\",\"count\":898,\"start\":61440},{\"fontName\":\"SymbolsNF\",\"count\":308,\"start\":62464},{\"fontName\":\"SymbolsNF\",\"count\":6896,\"start\":983041}],\"version\":2}",
   "Ansi 13 Color" : {
     "Green Component" : 0.3333333432674408,
     "Red Component" : 1,

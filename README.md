@@ -54,6 +54,9 @@ stow emacs-ide
 # terminal setup
 stow cmux
 stow ghostty
+# iTerm2 (macOS): Nerd symbol fonts, then import zsh/Development.json as the
+# default profile. See zsh/README.md "iTerm2 profile"
+brew install --cask font-symbols-only-nerd-font
 
 # global Pi agent instructions (never credentials or session history)
 stow pi
