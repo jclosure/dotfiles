@@ -16,7 +16,12 @@ main shell. The same profile also works in the built-in Windows PowerShell
 - **Plain `ls`**: no icons, no per-file-type colors. In PowerShell 7 only
   directories are colored, in bold blue like GNU `ls`.
 - **posh-git**: git tab completion.
-- **PSReadLine 2.2+**: Emacs key bindings, with no as-you-type suggestions.
+- **PSReadLine 2.2+**: Emacs key bindings.
+- **Fish-like suggestions**, like zsh-autosuggestions: as you type, the
+  most recent matching command from history appears inline in gray after
+  the cursor. Right arrow, End or Ctrl+E at the end of the line accepts it
+  all; Alt+F, Alt+Right or Ctrl+Right accepts one word. Suggestions only
+  turn on in a real console, because PSReadLine errors on redirected output.
   The command (first word) isn't colored yellow while you type; it's drawn
   like the rest of the line.
 - **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type

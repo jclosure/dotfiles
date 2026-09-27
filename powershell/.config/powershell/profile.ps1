@@ -24,13 +24,24 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
 
 Import-Module posh-git         # git tab completion
 
-# Emacs key bindings, and no as-you-type suggestions: history only comes up
-# on demand with Ctrl-r (below). PSReadLine 2.2+ turns predictions on by
-# default, so switch them off explicitly. (Installed to CurrentUser; the
-# built-in 2.0.0 is too old for -PredictionSource.)
+# Emacs key bindings. (PSReadLine 2.2+ is installed to CurrentUser for 5.1;
+# the built-in 2.0.0 is too old for -PredictionSource.)
 Import-Module PSReadLine -MinimumVersion 2.2
 Set-PSReadLineOption -EditMode Emacs
-Set-PSReadLineOption -PredictionSource None
+
+# Fish-like suggestions, like zsh-autosuggestions: one gray inline
+# completion from history after the cursor (not the ListView popup).
+# Right/End/Ctrl+E at the end of the line accept it all, and
+# Alt+F/Alt+Right/Ctrl+Right accept one word (wired into the motion keys
+# below). Gray = zsh-autosuggestions' default fg=8. Predictions throw when
+# output is redirected (scripts, Emacs shell buffers), so only turn them on
+# in a real console.
+if (-not [Console]::IsOutputRedirected) {
+    Set-PSReadLineOption -PredictionSource History -PredictionViewStyle InlineView
+    Set-PSReadLineOption -Colors @{ InlinePrediction = "$([char]27)[38;5;8m" }
+} else {
+    Set-PSReadLineOption -PredictionSource None
+}
 
 # Don't color the command (first word) yellow as you type; draw it like any
 # other text, as zsh does without syntax highlighting.
@@ -81,9 +92,18 @@ function global:Get-ZleState {
 
 function global:Stop-ZleRegion { $global:ZleRegion.Active = $false; $global:ZleRegion.Started = $false }
 
-# Bind a movement key: plain move normally, extend the region when a mark is set.
-function global:Set-ZleMotionKey([string[]]$Chord, [string]$Move, [string]$Select) {
-    Set-PSReadLineKeyHandler -Chord $Chord -Description "$Move (extends the region after Ctrl+Space)" -ScriptBlock ([scriptblock]::Create(@"
+# Bind a movement key: plain move normally, extend the region when a mark is
+# set. With -Accept, at the end of the line it accepts the inline suggestion
+# instead (all of it, or the next word), like zsh-autosuggestions' accept
+# and partial-accept widgets.
+function global:Set-ZleMotionKey([string[]]$Chord, [string]$Move, [string]$Select, [string]$Accept = '') {
+    $acceptCode = if ($Accept) { @"
+elseif ((Get-ZleState).Cursor -ge (Get-ZleState).Line.Length) {
+    [Microsoft.PowerShell.PSConsoleReadLine]::$Accept(`$key, `$arg)
+}
+"@ } else { '' }
+    $desc = "$Move (extends the region after Ctrl+Space" + $(if ($Accept) { "; $Accept at end of line" } else { '' }) + ')'
+    Set-PSReadLineKeyHandler -Chord $Chord -Description $desc -ScriptBlock ([scriptblock]::Create(@"
 param(`$key, `$arg)
 `$r = `$global:ZleRegion
 if (`$r.Active) {
@@ -95,18 +115,20 @@ if (`$r.Active) {
 if (`$r.Active) {
     [Microsoft.PowerShell.PSConsoleReadLine]::$Select(`$key, `$arg)
     `$r.Started = `$true
-} else {
+}
+$acceptCode
+else {
     [Microsoft.PowerShell.PSConsoleReadLine]::$Move(`$key, `$arg)
 }
 "@))
 }
 
 Set-ZleMotionKey 'LeftArrow', 'Ctrl+b'                 BackwardChar     SelectBackwardChar
-Set-ZleMotionKey 'RightArrow', 'Ctrl+f'                ForwardChar      SelectForwardChar
+Set-ZleMotionKey 'RightArrow', 'Ctrl+f'                ForwardChar      SelectForwardChar   AcceptSuggestion
 Set-ZleMotionKey 'Alt+LeftArrow', 'Ctrl+LeftArrow', 'Alt+b'   BackwardWord  SelectBackwardWord
-Set-ZleMotionKey 'Alt+RightArrow', 'Ctrl+RightArrow', 'Alt+f' NextWord      SelectNextWord
+Set-ZleMotionKey 'Alt+RightArrow', 'Ctrl+RightArrow', 'Alt+f' NextWord      SelectNextWord   AcceptNextSuggestionWord
 Set-ZleMotionKey 'Home', 'Ctrl+a'                      BeginningOfLine  SelectBackwardsLine
-Set-ZleMotionKey 'End', 'Ctrl+e'                       EndOfLine        SelectLine
+Set-ZleMotionKey 'End', 'Ctrl+e'                       EndOfLine        SelectLine          AcceptSuggestion
 
 Set-PSReadLineKeyHandler -Chord 'Ctrl+Spacebar', 'Ctrl+@' -Description 'Set mark: movement keys extend a highlighted region (zsh set-mark-command)' -ScriptBlock {
     param($key, $arg)
