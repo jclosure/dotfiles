@@ -12,8 +12,8 @@ daemon/plugin; the two coexist. The dashboard workspace is still labelled
 |---------------|--------------|
 | `herd`        | Start the herdr server if needed, open (or create) the `shepherd` workspace running the dashboard, attach. |
 | `herd dash`   | Run the dashboard in the current herdr pane. |
-| `herd focus`  | Jump to the dashboard workspace. Bound to **F1** and **prefix a** in herdr. |
-| `herd setup`  | Write herdr's config for this OS and apply the portable Handy settings. Safe to re-run. |
+| `herd focus`  | Jump to the dashboard workspace, creating it if missing. Bound to **F1** and **prefix a** in herdr. |
+| `herd setup`  | Write herdr's config for this OS, reload the running server (and print its answer), and apply the portable Handy settings. Safe to re-run. Does not open the dashboard: run `herd` or press F1. |
 | `herd update` | `git pull --ff-only` the dotfiles, re-run setup, `herdr update`, and upgrade Handy (Windows; Handy updates itself on macOS). |
 | `herd doctor` | Show paths, versions, and whether config/voice are in sync. |
 

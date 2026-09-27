@@ -747,10 +747,20 @@ def dash_workspace(snap):
     return next((w for w in snap.get("workspaces", []) if w.get("label") == DASH_LABEL), None)
 
 
-def focus_dashboard():
+def ensure_dashboard(focus=True):
+    """Focus the dashboard workspace, creating it (running `herd dash`) if it doesn't exist."""
     ws = dash_workspace(herdr("api", "snapshot")["snapshot"])
-    if ws:
+    if ws is None:
+        res = herdr("workspace", "create", "--cwd", str(Path.home()), "--label", DASH_LABEL,
+                    "--focus" if focus else "--no-focus")
+        time.sleep(1.5)  # let the pane shell reach its prompt
+        herdr("pane", "run", res["root_pane"]["pane_id"], "herd dash")
+    elif focus:
         herdr("workspace", "focus", ws["workspace_id"])
+
+
+def focus_dashboard():
+    ensure_dashboard()
 
 
 def server_running():
@@ -777,14 +787,7 @@ def start():
             if server_running():
                 break
             time.sleep(0.2)
-    snap = herdr("api", "snapshot")["snapshot"]
-    ws = dash_workspace(snap)
-    if ws is None:
-        res = herdr("workspace", "create", "--cwd", str(Path.home()), "--label", DASH_LABEL, "--focus")
-        time.sleep(1.5)  # let the pane shell reach its prompt
-        herdr("pane", "run", res["root_pane"]["pane_id"], "herd dash")
-    else:
-        herdr("workspace", "focus", ws["workspace_id"])
+    ensure_dashboard()
     if os.environ.get("HERDR_ENV") != "1":
         sys.exit(subprocess.call([HERDR]))
 
@@ -948,6 +951,7 @@ def setup_voice():
 def setup():
     setup_herdr_config()
     setup_voice()
+    print("next: run `herd` (or press F1 inside herdr) to open the dashboard")
 
 
 def update():
