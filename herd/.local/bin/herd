@@ -820,7 +820,8 @@ def setup_herdr_config():
         target.parent.mkdir(parents=True, exist_ok=True)
         if have is not None:
             print(f"herdr config: backed up previous config to {backup(target)}")
-        target.write_text(want, encoding="utf-8", newline="\n")
+        with target.open("w", encoding="utf-8", newline="\n") as f:
+            f.write(want)
         print(f"herdr config: wrote {target}")
     reload_herdr_config()
 
