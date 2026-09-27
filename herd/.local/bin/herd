@@ -940,7 +940,7 @@ def install_handy_linux(upgrade=False):
         return False
     have = handy_linux_version()
     if have and not upgrade:
-        return True
+        return ensure_typing_helper(pm)
     with urllib.request.urlopen("https://api.github.com/repos/cjpais/Handy/releases/latest", timeout=30) as r:
         release = json.load(r)
     latest = release["tag_name"].lstrip("v")
@@ -954,8 +954,7 @@ def install_handy_linux(upgrade=False):
     if asset is None:
         print(f"voice: no Handy package for {pm}/{arch}; see https://handy.computer")
         return False
-    # Wayland can't be typed into without a helper; X11 uses xdotool.
-    helper = "wtype" if linux_session()["type"] == "wayland" else "xdotool"
+    helper = typing_helper()
     with tempfile.TemporaryDirectory() as tmp:
         pkg = Path(tmp) / asset["name"]
         print(f"voice: downloading {asset['name']}")
@@ -969,6 +968,20 @@ def install_handy_linux(upgrade=False):
     if ok:
         print(f"voice: Handy {handy_linux_version()} installed")
     return ok
+
+
+def typing_helper():
+    """Handy needs wtype to type into Wayland apps; X11 uses xdotool."""
+    return "wtype" if linux_session()["type"] == "wayland" else "xdotool"
+
+
+def ensure_typing_helper(pm):
+    helper = typing_helper()
+    if shutil.which(helper):
+        return True
+    cmd = ["sudo", "apt-get" if pm == "apt" else "dnf", "install", "-y", helper]
+    print("voice: installing text-input helper: " + " ".join(cmd))
+    return subprocess.run(cmd).returncode == 0
 
 
 COSMIC_SHORTCUTS = Path.home() / ".config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom"
