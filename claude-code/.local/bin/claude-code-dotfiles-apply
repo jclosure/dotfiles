@@ -1,0 +1,56 @@
+#!/bin/sh
+set -eu
+
+# Claude Code records folder trust per path in ~/.claude.json
+# (projects["<path>"].hasTrustDialogAccepted). Accepting the prompt in $HOME
+# is deliberately session-only, so it is never saved from the UI. Set the flag
+# directly instead. ~/.claude.json also holds OAuth account data and caches,
+# so the public dotfiles repository never tracks it; only this one key changes.
+#
+# Usage: claude-code-dotfiles-apply [DIR...]   (default: $HOME)
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required" >&2
+  exit 1
+fi
+
+CONFIG="${CLAUDE_CONFIG_PATH:-$HOME/.claude.json}"
+if [ ! -f "$CONFIG" ]; then
+  echo "$CONFIG not found; run claude once to create it" >&2
+  exit 1
+fi
+
+if [ "$#" -eq 0 ]; then
+  set -- "$HOME"
+fi
+
+if pgrep -x claude >/dev/null 2>&1; then
+  echo "warning: claude is running and may overwrite this when it exits;" >&2
+  echo "         re-run after closing all sessions if the prompt comes back" >&2
+fi
+
+python3 - "$CONFIG" "$@" <<'PY'
+import json, os, sys, tempfile
+
+config_path, dirs = sys.argv[1], sys.argv[2:]
+with open(config_path, encoding="utf-8") as f:
+    config = json.load(f)
+
+projects = config.setdefault("projects", {})
+for d in dirs:
+    path = os.path.realpath(os.path.expanduser(d))
+    projects.setdefault(path, {})["hasTrustDialogAccepted"] = True
+    print(f"trusted: {path}")
+
+# Atomic replace in the same directory, keeping the file's 0600 mode.
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(config_path), prefix=".claude.json.")
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+    os.chmod(tmp, os.stat(config_path).st_mode & 0o777)
+    os.replace(tmp, config_path)
+except BaseException:
+    os.unlink(tmp)
+    raise
+PY

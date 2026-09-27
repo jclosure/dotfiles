@@ -18,6 +18,7 @@ directory is a module; most are stow packages that get symlinked into
 | `terminator`       | stow package (Linux) | Symlinks `.config/terminator` into `$HOME`. Ctrl+Alt+Arrow pane focus; F1 unbound from Terminator help so it passes through to the app. Edits made in Terminator's Preferences dialog write through the symlink into this repo. |
 | `pi`               | stow package  | Symlinks global Pi agent instructions under `.pi/agent/`. Credentials, sessions, caches, and machine-local settings remain untracked. |
 | `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
+| `claude-code`      | stow package  | Installs `claude-code-dotfiles-apply`, which marks `$HOME` (or given folders) as trusted in `~/.claude.json` so Claude Code stops showing the folder-trust prompt. The config file itself is never tracked. See [`claude-code/README.md`](claude-code/README.md). |
 | `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
 | `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
 | `powershell`       | stow package (Windows) | Oh My Zsh-style PowerShell 7 (also works in 5.1): Oh My Posh `robbyrussell` prompt with Windows logo + hostname, plain `ls` (directories bold blue), posh-git, Emacs keys, fzf history search on Ctrl-r, fish-like gray history suggestions (like zsh-autosuggestions). Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
@@ -65,6 +66,10 @@ stow pi
 
 # personal skills shared by compatible agents
 stow agent-skills
+
+# Claude Code: trust $HOME so the folder-trust prompt stops appearing
+stow claude-code
+claude-code-dotfiles-apply
 
 # safe Hermes integration; then apply portable settings
 stow hermes
