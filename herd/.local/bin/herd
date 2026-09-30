@@ -568,7 +568,9 @@ def render(state, ui):
     cursor_col = 3 + min(len(buf), cols - 4)
     frame += f"{ESC}{lines_avail};{cursor_col}H"
     if frame != ui.get("last_frame"):
-        sys.stdout.write(frame)
+        # hide the cursor while painting and ask for an atomic (synchronized) update,
+        # so the terminal never shows the cursor sweeping through a half-drawn frame
+        sys.stdout.write(ESC + "?2026h" + ESC + "?25l" + frame + ESC + "?25h" + ESC + "?2026l")
         sys.stdout.flush()
         ui["last_frame"] = frame
 
