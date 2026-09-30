@@ -13,6 +13,7 @@ exit 1
 
 DASH_HELP = """\
   up/down          select an agent          enter (empty input)   jump to selected agent
+  click            jump to that agent       wheel                 move the selection
   <number> enter   jump to agent #N         <text> enter          spawn a new agent with that task
   tab              cycle "where" through known project dirs
   /who <kind>      set agent kind (claude, codex, gemini, ...)
@@ -33,7 +34,8 @@ from pathlib import Path
 
 IS_WINDOWS = os.name == "nt"
 if IS_WINDOWS:
-    import msvcrt
+    import ctypes
+    from ctypes import wintypes
 else:
     import select
     import termios
@@ -517,9 +519,11 @@ def render(state, ui):
     name_w = max([len(r["name"]) for r in flat] + [12])
     name_w = min(name_w, 32)
     list_lines = []
+    list_rows = []  # agent row shown on each list line (None for group headers)
     sel_line = 0
     for label, rows in groups:
         list_lines.append(f" {GREEN}{BOLD}{label}{RESET} {GREY}· {len(rows)}{RESET}")
+        list_rows.append(None)
         for r in rows:
             glyph, colour = STATUS_STYLE.get(r["status"], STATUS_STYLE["unknown"])
             selected = flat and flat[ui["sel"]] is r
@@ -538,6 +542,7 @@ def render(state, ui):
                 f"{YELLOW}{fmt_age(r['in_state']):>5}{RESET} {GREY}{fmt_age(r['age']):>5}{RESET}  "
                 f"{BLUE}{r['kind']:<8}{RESET} {GREY}{title}{RESET}"
             )
+            list_rows.append(r)
 
     footer = []
     for _, text, colour in msgs:
@@ -552,6 +557,9 @@ def render(state, ui):
     if len(list_lines) > room:
         start = min(max(0, sel_line - room // 2), len(list_lines) - room)
         list_lines = list_lines[start:start + room]
+        list_rows = list_rows[start:start + room]
+    # 1-based screen line -> agent row, for mouse clicks
+    ui["row_at"] = {len(out) + i + 1: r for i, r in enumerate(list_rows) if r is not None}
     body = out + list_lines
     body += [""] * max(0, lines_avail - len(body) - len(footer))
     screen = body + footer
@@ -620,20 +628,56 @@ def handle_line(state, ui, line):
 
 # ---------------------------------------------------------------- keys
 
+MOUSE_ON = ESC + "?1000h" + ESC + "?1006h"  # button presses + wheel, SGR coordinates
+MOUSE_OFF = ESC + "?1006l" + ESC + "?1000l"
+SGR_MOUSE = re.compile(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])")
+
+if IS_WINDOWS:
+    class _KeyEvent(ctypes.Structure):
+        _fields_ = [("down", wintypes.BOOL), ("repeat", wintypes.WORD), ("vk", wintypes.WORD),
+                    ("scan", wintypes.WORD), ("char", wintypes.WCHAR), ("ctrl", wintypes.DWORD)]
+
+    class _MouseEvent(ctypes.Structure):
+        _fields_ = [("x", wintypes.SHORT), ("y", wintypes.SHORT), ("buttons", wintypes.DWORD),
+                    ("ctrl", wintypes.DWORD), ("flags", wintypes.DWORD)]
+
+    class _Event(ctypes.Union):
+        _fields_ = [("key", _KeyEvent), ("mouse", _MouseEvent)]
+
+    class _InputRecord(ctypes.Structure):
+        _fields_ = [("type", wintypes.WORD), ("event", _Event)]
+
+
 class Keys:
     """Non-blocking key reader yielding normalised names: up, down, enter, backspace,
-    ctrl+w, ctrl+c, esc, tab, or a single printable character."""
+    ctrl+w, ctrl+c, esc, tab, a single printable character, wheel-up/wheel-down, or
+    "click:<col>:<line>" (1-based) for a left click."""
 
     def __init__(self):
         self.buf = ""
         self.saved = None
-        if not IS_WINDOWS and sys.stdin.isatty():
+        if IS_WINDOWS:
+            # Read raw console records so mouse events arrive (ConPTY turns the host's SGR
+            # mouse reports into MOUSE_EVENT records). Quick-edit would swallow the clicks.
+            self.kernel32 = ctypes.windll.kernel32
+            self.handle = self.kernel32.GetStdHandle(-10)
+            self.records = (_InputRecord * 64)()
+            mode = wintypes.DWORD()
+            if self.kernel32.GetConsoleMode(self.handle, ctypes.byref(mode)):
+                self.saved = mode.value
+                # +mouse input +extended flags, -quick edit, -VT input
+                self.kernel32.SetConsoleMode(self.handle, (mode.value | 0x10 | 0x80) & ~0x40 & ~0x200)
+        elif sys.stdin.isatty():
             self.fd = sys.stdin.fileno()
             self.saved = termios.tcgetattr(self.fd)
             tty.setcbreak(self.fd)
 
     def restore(self):
-        if self.saved is not None:
+        if self.saved is None:
+            return
+        if IS_WINDOWS:
+            self.kernel32.SetConsoleMode(self.handle, self.saved)
+        else:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
 
     def poll(self):
@@ -641,12 +685,20 @@ class Keys:
 
     def _poll_windows(self):
         out = []
-        while msvcrt.kbhit():
-            ch = msvcrt.getwch()
-            if ch in ("\x00", "\xe0"):
-                out.append({"H": "up", "P": "down"}.get(msvcrt.getwch(), ""))
-            else:
-                out.append(self._simple(ch))
+        count = wintypes.DWORD()
+        while self.kernel32.GetNumberOfConsoleInputEvents(self.handle, ctypes.byref(count)) and count.value:
+            self.kernel32.ReadConsoleInputW(self.handle, self.records, len(self.records), ctypes.byref(count))
+            for rec in self.records[:count.value]:
+                if rec.type == 1 and rec.event.key.down:  # KEY_EVENT
+                    key = rec.event.key
+                    name = {38: "up", 40: "down"}.get(key.vk) or (self._simple(key.char) if key.char else "")
+                    out.extend([name] * max(1, key.repeat))
+                elif rec.type == 2:  # MOUSE_EVENT, 0-based cells
+                    m = rec.event.mouse
+                    if m.flags == 0 and m.buttons & 1:
+                        out.append(f"click:{m.x + 1}:{m.y + 1}")
+                    elif m.flags == 4:  # MOUSE_WHEELED: high word is the signed delta
+                        out.append("wheel-down" if m.buttons & 0x80000000 else "wheel-up")
         return [k for k in out if k]
 
     def _poll_posix(self):
@@ -663,6 +715,15 @@ class Keys:
                     self.buf = self.buf[len(seq):]
                     break
             else:
+                m = SGR_MOUSE.match(self.buf)
+                if m:
+                    self.buf = self.buf[m.end():]
+                    b, press = int(m[1]), m[4] == "M"
+                    if press and b == 0:
+                        out.append(f"click:{m[2]}:{m[3]}")
+                    elif press and b in (64, 65):
+                        out.append("wheel-up" if b == 64 else "wheel-down")
+                    continue
                 if self.buf.startswith("\x1b[") or self.buf.startswith("\x1bO"):
                     m = re.match(r"\x1b[\[O][0-9;]*[A-Za-z~]", self.buf)
                     if not m:
@@ -681,9 +742,14 @@ class Keys:
 
 
 def handle_key(state, ui, key):
-    if key == "up" and ui["flat"]:
+    if key.startswith("click:"):
+        r = ui.get("row_at", {}).get(int(key.split(":")[2]))
+        if r:
+            ui["sel"] = next((i for i, f in enumerate(ui["flat"]) if f is r), ui["sel"])
+            focus(state, r)
+    elif key in ("up", "wheel-up") and ui["flat"]:
         ui["sel"] = max(0, ui["sel"] - 1)
-    elif key == "down" and ui["flat"]:
+    elif key in ("down", "wheel-down") and ui["flat"]:
         ui["sel"] = min(len(ui["flat"]) - 1, ui["sel"] + 1)
     elif key == "enter":
         line, ui["input"] = ui["input"], ""
@@ -725,7 +791,7 @@ def dash():
     threading.Thread(target=poll_loop, args=(state, stop), daemon=True).start()
     ui = {"input": "", "sel": 0, "flat": [], "quit": False}
     keys = Keys()
-    sys.stdout.write(ESC + "?1049h" + ESC + "2J")
+    sys.stdout.write(ESC + "?1049h" + ESC + "2J" + MOUSE_ON)
     try:
         while not ui["quit"]:
             for key in keys.poll():
@@ -738,7 +804,7 @@ def dash():
         keys.restore()
         stop.set()
         state.save()
-        sys.stdout.write(RESET + ESC + "?1049l")
+        sys.stdout.write(RESET + MOUSE_OFF + ESC + "?1049l")
         sys.stdout.flush()
 
 
