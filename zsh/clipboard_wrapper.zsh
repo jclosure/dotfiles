@@ -1,14 +1,26 @@
+# Over SSH, clipcopy only reaches the *remote* machine's clipboard (pbcopy,
+# clip.exe, ...) or none at all.  OSC 52 asks the terminal you're actually
+# sitting at to set its clipboard instead; herdr forwards it and Ghostty
+# accepts it, so the copy lands on the local machine.
+_osc52_copy () {
+  printf '\e]52;c;%s\a' "$(printf "%s" "$1" | base64 | tr -d '\n')" > /dev/tty
+}
+
+_clip_copy () {
+  [[ -n $SSH_CONNECTION || -n $SSH_TTY ]] && _osc52_copy "$1"
+  if which clipcopy &>/dev/null; then
+    printf "%s" "$1" | clipcopy 2>/dev/null
+  else
+    echo "clipcopy function not found. Make sure zsh/lib/clipboard.zsh was sourced."
+  fi
+}
 
 cutbuffer () {
   emulate -L zsh
   zle kill-region
   zle set-mark-command -n -1
   killring=("$CUTBUFFER" "${(@)killring[1,-2]}")
-  if which clipcopy &>/dev/null; then
-    printf "%s" "$CUTBUFFER" | clipcopy
-  else
-    echo "clipcopy function not found. Make sure zsh/lib/clipboard.zsh was sourced."
-  fi
+  _clip_copy "$CUTBUFFER"
 }
 
 copybuffer () {
@@ -16,11 +28,7 @@ copybuffer () {
   zle copy-region-as-kill
   zle set-mark-command -n -1
   killring=("$CUTBUFFER" "${(@)killring[1,-2]}")
-  if which clipcopy &>/dev/null; then
-    printf "%s" "$CUTBUFFER" | clipcopy
-  else
-    echo "clipcopy function not found. Make sure zsh/lib/clipboard.zsh was sourced."
-  fi
+  _clip_copy "$CUTBUFFER"
 }
 
 pastebuffer () {

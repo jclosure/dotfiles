@@ -1,6 +1,7 @@
 [global_config]
   suppress_multiple_term_dialog = True
 [keybindings]
+  paste = <Primary>v
   go_up = <Primary><Alt>Up
   go_down = <Primary><Alt>Down
   go_left = <Primary><Alt>Left

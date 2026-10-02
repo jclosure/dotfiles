@@ -99,6 +99,16 @@ function global:Get-ZleState {
     @{ Line = $line; Cursor = $cursor; SelStart = $selStart; SelLength = $selLength }
 }
 
+# Over SSH, Set-Clipboard (and PSReadLine's Cut/Copy) only reach the
+# *remote* Windows clipboard. OSC 52 asks the terminal you're actually
+# sitting at to set its clipboard instead (herdr forwards it, Ghostty and
+# Windows Terminal accept it), so copies land on the local machine too.
+function global:Send-ZleOsc52([string]$Text) {
+    if (-not $env:SSH_CONNECTION -or -not $Text) { return }
+    $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Text))
+    [Console]::Write("$([char]27)]52;c;$b64$([char]7)")
+}
+
 function global:Stop-ZleRegion { $global:ZleRegion.Active = $false; $global:ZleRegion.Started = $false }
 
 # Bind a movement key: plain move normally, extend the region when a mark is
@@ -160,8 +170,10 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+w' -Description 'Cut region to the system 
     $s = Get-ZleState
     Stop-ZleRegion
     if ($s.SelLength -gt 0) {
+        Send-ZleOsc52 $s.Line.Substring($s.SelStart, $s.SelLength)
         [Microsoft.PowerShell.PSConsoleReadLine]::Cut($key, $arg)
     } elseif ($s.Cursor -gt 0) {
+        Send-ZleOsc52 $s.Line.Substring(0, $s.Cursor)
         Set-Clipboard -Value $s.Line.Substring(0, $s.Cursor)
         [Microsoft.PowerShell.PSConsoleReadLine]::Delete(0, $s.Cursor)
     }
@@ -172,8 +184,10 @@ Set-PSReadLineKeyHandler -Chord 'Alt+w', 'Alt+W' -Description 'Copy region to th
     $s = Get-ZleState
     Stop-ZleRegion
     if ($s.SelLength -gt 0) {
+        Send-ZleOsc52 $s.Line.Substring($s.SelStart, $s.SelLength)
         [Microsoft.PowerShell.PSConsoleReadLine]::Copy($key, $arg)
     } elseif ($s.Cursor -gt 0) {
+        Send-ZleOsc52 $s.Line.Substring(0, $s.Cursor)
         Set-Clipboard -Value $s.Line.Substring(0, $s.Cursor)
     }
 }
