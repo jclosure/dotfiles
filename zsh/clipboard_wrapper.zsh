@@ -1,13 +1,15 @@
 # Over SSH, clipcopy only reaches the *remote* machine's clipboard (pbcopy,
 # clip.exe, ...) or none at all.  OSC 52 asks the terminal you're actually
 # sitting at to set its clipboard instead; herdr forwards it and Ghostty
-# accepts it, so the copy lands on the local machine.
+# accepts it, so the copy lands on the local machine.  Always sent, not just
+# when $SSH_CONNECTION is set: a shell in a herdr/tmux server that was started
+# outside ssh doesn't have it, and locally it's harmless (same clipboard).
 _osc52_copy () {
   printf '\e]52;c;%s\a' "$(printf "%s" "$1" | base64 | tr -d '\n')" > /dev/tty
 }
 
 _clip_copy () {
-  [[ -n $SSH_CONNECTION || -n $SSH_TTY ]] && _osc52_copy "$1"
+  _osc52_copy "$1"
   if which clipcopy &>/dev/null; then
     printf "%s" "$1" | clipcopy 2>/dev/null
   else
