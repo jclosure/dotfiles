@@ -52,6 +52,17 @@ ssh() {
   # yours. gpg-agent auto-restarts on its own next local invocation, so this
   # has no lasting effect once the forwarding session ends.
   #
+  # REQUIRED ON EVERY TARGET HOST: `StreamLocalBindUnlink yes` in the
+  # target's sshd_config (e.g. /etc/ssh/sshd_config.d/gpg-forward.conf).
+  # For a -R forward, only the SERVER's setting decides whether a stale
+  # socket file at the listen path gets unlinked; passing it as a client -o
+  # does nothing (client-side it only governs -L forwards). And there is
+  # always a stale file on Linux targets: systemd's gpg-agent.socket user
+  # units create S.gpg-agent at login and keep it even after the
+  # `gpgconf --kill` above. Without the server setting the forward fails
+  # with "remote port forwarding failed for listen path ..." (hit on pop-os,
+  # whose sshd lacked it while ubuntu.local had it).
+  #
   # Non-interactive ssh commands don't source login-shell rc files, so on a
   # box where gpgconf only lives under Homebrew (not on the default PATH in
   # that context) it would silently fail to run at all - hence the explicit
@@ -72,7 +83,7 @@ ssh() {
     # same logic) since the last time anything local touched gpg.
     PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --launch gpg-agent >/dev/null 2>&1
     local_extra="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-extra-socket)"
-    command ssh -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
+    command ssh -o ExitOnForwardFailure=yes \
       -R "${remote_std}:${local_extra}" "$host" "$@"
   fi
 }
@@ -129,7 +140,7 @@ sshmail() {
   local local_full
   local_full="$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" gpgconf --list-dirs agent-socket)"
 
-  command ssh -o ControlPath="$cpath" -o StreamLocalBindUnlink=yes -o ExitOnForwardFailure=yes \
+  command ssh -o ControlPath="$cpath" -o ExitOnForwardFailure=yes \
     -R "${remote_std}:${local_full}" "$host" "$@"
 }
 
