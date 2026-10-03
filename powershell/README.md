@@ -200,3 +200,28 @@ Oh My Posh code.
   changes `.Directory`. Run `$PSStyle.FileInfo` to see the rest.
 
 Preview changes with `. $PROFILE` in the current shell.
+
+## GPG/YubiKey forwarding for mu4e on Ubuntu
+
+Gpg4win and the PowerShell profile include `sshmail`, which forwards the full
+Windows GPG agent to Ubuntu through a loopback TCP bridge. This is needed
+because Windows OpenSSH cannot use GnuPG's drive-letter socket directly. The
+YubiKey remains attached to Windows; PIN prompts come from the local Gpg4win
+agent.
+
+```powershell
+winget install GnuPG.Gpg4win
+# ~/.ssh/config must identify the Ubuntu account:
+# Host ubuntu.local
+#   HostName ubuntu.local
+#   User user
+
+. $PROFILE
+sshmail ubuntu.local emacs -nw
+```
+
+Use `sshmail` instead of `ssh` for the mail/Emacs session. It temporarily
+stops Ubuntu's systemd GPG socket units, restores them when the session ends,
+and forwards the full agent socket so mu4e signing and decryption can select
+the local card. The Windows helper is
+[`gpg-agent-proxy.ps1`](.config/powershell/gpg-agent-proxy.ps1).

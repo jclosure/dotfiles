@@ -198,3 +198,104 @@ if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvaila
     Import-Module PSFzf
     Set-PsFzfOption -PSReadlineChordReverseHistory 'Ctrl+r'
 }
+
+# Full GPG-agent forwarding for Emacs/mu4e on Linux.  Windows OpenSSH cannot
+# use GnuPG's drive-letter AF_UNIX socket as a RemoteForward endpoint, so the
+# helper bridges that socket to a loopback TCP port and SSH forwards the TCP
+# endpoint into Ubuntu.  The YubiKey stays attached to this Windows machine.
+function global:sshmail {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $HostName,
+        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+        [string[]] $Command
+    )
+
+    switch ($HostName -replace '^.*@', '') {
+        'ubuntu.local' { }
+        'ubuntu'       { }
+        default {
+            Write-Error "sshmail: $HostName is not a known card-forwarding host"
+            return
+        }
+    }
+
+    $gpgconf = (Get-Command gpgconf -ErrorAction Stop).Source
+    & $gpgconf --launch gpg-agent 2>$null
+    $localSocket = (& $gpgconf --list-dirs agent-socket).Trim()
+    if (-not $localSocket) {
+        Write-Error 'sshmail: could not determine the local GPG agent socket'
+        return
+    }
+
+    # Ask the target for its standard socket and stop its own agent/socket
+    # units before the forward is created.  Ubuntu's systemd socket units can
+    # otherwise reclaim the path after gpgconf --kill, defeating the forward.
+    # StreamLocalBindUnlink on sshd then replaces the removed path with this
+    # session's forwarded endpoint.
+    # Do not capture native ssh stdout through a PowerShell pipeline here:
+    # Windows OpenSSH can keep that pipeline open when it is itself running
+    # under sshd.  Redirect to a file and wait for the process instead.
+    $sshExe = (Get-Command ssh.exe -ErrorAction Stop).Source
+    $queryOut = [IO.Path]::GetTempFileName()
+    $queryErr = [IO.Path]::GetTempFileName()
+    $query = Start-Process -FilePath $sshExe -WindowStyle Hidden -PassThru `
+        -RedirectStandardOutput $queryOut -RedirectStandardError $queryErr `
+        -ArgumentList @('-o', 'ControlPath=none', '-o', 'ConnectTimeout=5',
+            $HostName, 'gpgconf --list-dirs agent-socket')
+    $null = $query.WaitForExit()
+    $remoteSocket = (Get-Content -LiteralPath $queryOut -Raw -ErrorAction SilentlyContinue).Trim()
+    Remove-Item -LiteralPath $queryOut, $queryErr -Force -ErrorAction SilentlyContinue
+    if ($remoteSocket -notmatch '^/') {
+        Write-Error "sshmail: could not determine the remote GPG socket for $HostName"
+        return
+    }
+    & ssh -o ControlPath=none -o ConnectTimeout=5 $HostName `
+        'systemctl --user stop gpg-agent.socket gpg-agent-extra.socket gpg-agent-browser.socket gpg-agent-ssh.socket >/dev/null 2>&1 || true; gpgconf --kill gpg-agent; rm -f /run/user/1000/gnupg/S.gpg-agent /run/user/1000/gnupg/S.gpg-agent.extra /run/user/1000/gnupg/S.gpg-agent.browser /run/user/1000/gnupg/S.gpg-agent.ssh' 1>$null 2>$null
+
+    $proxy = Join-Path $HOME 'dotfiles\powershell\.config\powershell\gpg-agent-proxy.ps1'
+    if (-not (Test-Path -LiteralPath $proxy)) {
+        Write-Error "sshmail: proxy helper not found: $proxy"
+        return
+    }
+
+    $ready = [IO.Path]::GetTempFileName()
+    Remove-Item -LiteralPath $ready -Force
+    $pwsh = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+    if (-not $pwsh) { $pwsh = (Get-Command powershell.exe -ErrorAction Stop).Source }
+    $proxyProcess = Start-Process -FilePath $pwsh -WindowStyle Hidden -PassThru -ArgumentList @(
+        '-NoProfile', '-File', $proxy, '-SocketPath', $localSocket,
+        '-ReadyFile', $ready
+    )
+
+    try {
+        $localPort = $null
+        for ($i = 0; $i -lt 50 -and -not $localPort; $i++) {
+            Start-Sleep -Milliseconds 100
+            if ($proxyProcess.HasExited) {
+                throw "GPG agent proxy exited with code $($proxyProcess.ExitCode)"
+            }
+            if (Test-Path -LiteralPath $ready) {
+                $localPort = [int](Get-Content -LiteralPath $ready -Raw).Trim()
+            }
+        }
+        if (-not $localPort) { throw 'timed out waiting for the GPG agent proxy' }
+
+        $forward = "${remoteSocket}:127.0.0.1:${localPort}"
+        & ssh -o ExitOnForwardFailure=yes -R $forward $HostName @Command
+        $exitCode = $LASTEXITCODE
+        if ($null -ne $exitCode) {
+            $global:LASTEXITCODE = $exitCode
+            return
+        }
+    }
+    finally {
+        if ($proxyProcess -and -not $proxyProcess.HasExited) {
+            Stop-Process -Id $proxyProcess.Id -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -LiteralPath $ready -Force -ErrorAction SilentlyContinue
+        # Put Ubuntu's normal socket activation back after the mail session.
+        & ssh -o ControlPath=none -o ConnectTimeout=5 $HostName `
+            'systemctl --user start gpg-agent.socket gpg-agent-extra.socket gpg-agent-browser.socket gpg-agent-ssh.socket' 1>$null 2>$null
+    }
+}
