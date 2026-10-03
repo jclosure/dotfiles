@@ -1,5 +1,7 @@
 font-size = 18
 theme = Ayu
+cursor-style = bar
+cursor-style-blink = true
 
 # Per-machine overrides (gitignored): put settings in ~/.config/ghostty/local
 config-file = ?local
