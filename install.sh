@@ -33,3 +33,10 @@ source "$ZSH/oh-my-zsh.sh"
 # our prompt overrides omz
 DOTFILES_ROOT=${0:a:h}
 source "$DOTFILES_ROOT/zsh/init.zsh"
+
+# Ghostty sends TERM=xterm-ghostty over ssh. Hosts that don't know it make
+# zle redraw wrong (repeated chars, leftover partial text), so compile the
+# definition into ~/.terminfo on first login wherever it's missing.
+if (( $+commands[tic] )) && ! infocmp xterm-ghostty &>/dev/null; then
+  tic -x "$DOTFILES_ROOT/ghostty/xterm-ghostty.terminfo" 2>/dev/null && export TERM=$TERM  # re-read by zle
+fi
