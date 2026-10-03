@@ -72,6 +72,7 @@ main shell. The same profile also works in the built-in Windows PowerShell
 | File | Stowed to |
 |------|-----------|
 | `.config/powershell/profile.ps1` | `~/.config/powershell/profile.ps1` (the actual profile) |
+| `.config/powershell/zle.ps1` | `~/.config/powershell/zle.ps1` (the zle-style editing above, dot-sourced by the profile) |
 | `.config/oh-my-posh/robbyrussell.omp.json` | `~/.config/oh-my-posh/robbyrussell.omp.json` (the theme) |
 
 ## Setup
