@@ -221,7 +221,7 @@ function global:sshmail {
     }
 
     $gpgconf = (Get-Command gpgconf -ErrorAction Stop).Source
-    & $gpgconf --launch gpg-agent 2>$null
+    $null = & $gpgconf --launch gpg-agent 2>$null
     $localSocket = (& $gpgconf --list-dirs agent-socket).Trim()
     if (-not $localSocket) {
         Write-Error 'sshmail: could not determine the local GPG agent socket'
