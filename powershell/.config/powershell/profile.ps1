@@ -61,14 +61,6 @@ Remove-Variable plain
 # sessions can load it (see README).
 . "$HOME\dotfiles\powershell\.config\powershell\zle.ps1"
 
-# Ctrl-r = fzf over command history, like fzf's zsh widget: fuzzy filter,
-# Enter puts the command on the prompt to edit or run.
-# Needs: winget install junegunn.fzf; Install-Module PSFzf -Scope CurrentUser
-if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
-    Import-Module PSFzf
-    Set-PsFzfOption -PSReadlineChordReverseHistory 'Ctrl+r'
-}
-
 # Terminal modes that full-screen programs (herdr, vim, htop, ...) turn on and
 # turn off again when they exit: mouse reporting, focus events, bracketed
 # paste, application cursor keys and kitty/xterm keyboard modes. If the program
@@ -97,6 +89,14 @@ function global:ssh {
     $code = $LASTEXITCODE
     reset-term
     $global:LASTEXITCODE = $code
+}
+
+# Ctrl-r = fzf over command history, like fzf's zsh widget: fuzzy filter,
+# Enter puts the command on the prompt to edit or run.
+# Needs: winget install junegunn.fzf; Install-Module PSFzf -Scope CurrentUser
+if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
+    Import-Module PSFzf
+    Set-PsFzfOption -PSReadlineChordReverseHistory 'Ctrl+r'
 }
 
 # Full GPG-agent forwarding for Emacs/mu4e on Linux.  Windows OpenSSH cannot
