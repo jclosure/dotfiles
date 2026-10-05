@@ -69,6 +69,36 @@ if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvaila
     Set-PsFzfOption -PSReadlineChordReverseHistory 'Ctrl+r'
 }
 
+# Terminal modes that full-screen programs (herdr, vim, htop, ...) turn on and
+# turn off again when they exit: mouse reporting, focus events, bracketed
+# paste, application cursor keys and kitty/xterm keyboard modes. If the program
+# never gets to exit cleanly, say an SSH connection that dies under herdr, they
+# stay on in Windows Terminal: clicks and keys then print escape-sequence
+# garbage like [<0;12;5M at the prompt. This string turns them all off again.
+$global:TermModesOff = "$([char]27)[?1000l$([char]27)[?1002l$([char]27)[?1003l" +
+    "$([char]27)[?1005l$([char]27)[?1006l$([char]27)[?1015l$([char]27)[?1016l$([char]27)[?9l" +
+    "$([char]27)[?2004l$([char]27)[?1l$([char]27)>" +
+    "$([char]27)[<99u$([char]27)[=0;1u$([char]27)[>4;0m$([char]27)[?25h"
+
+# Fix a terminal left printing garbage: run `reset-term` (the text you type
+# may be garbled; that's fine, Enter still works).
+function global:reset-term {
+    if (-not [Console]::IsOutputRedirected) { [Console]::Write($global:TermModesOff) }
+}
+
+# ssh with keepalives, then reset the terminal modes. Without keepalives a dead
+# connection (network drop, the other machine asleep) leaves ssh waiting for a
+# very long time, and the terminal looks frozen: keys go nowhere and nothing
+# echoes. With them, ssh gives up after about 45s (3 missed 15s probes).
+# Enter then ~. kills a hung session right away. Calls ssh.exe so this isn't
+# recursive; sshmail goes through it too.
+function global:ssh {
+    & ssh.exe -o ServerAliveInterval=15 -o ServerAliveCountMax=3 @args
+    $code = $LASTEXITCODE
+    reset-term
+    $global:LASTEXITCODE = $code
+}
+
 # Full GPG-agent forwarding for Emacs/mu4e on Linux.  Windows OpenSSH cannot
 # use GnuPG's drive-letter AF_UNIX socket as a RemoteForward endpoint, so the
 # helper bridges that socket to a loopback TCP port and SSH forwards the TCP

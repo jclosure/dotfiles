@@ -146,6 +146,33 @@ main shell. The same profile also works in the built-in Windows PowerShell
    "terminal.integrated.fontFamily": "JetBrainsMono NFM"
    ```
 
+## Frozen or garbled terminal after SSH
+
+Two things used to go wrong after `ssh` from Windows Terminal, especially with
+herdr on the other end:
+
+- **The terminal stops taking input.** Usually the connection has died (the
+  network dropped or the other machine went to sleep), but `ssh` doesn't know
+  yet. Your keys go to a dead connection and nothing echoes.
+- **After a disconnect, keys and clicks print garbage** like `[<0;12;5M`.
+  herdr, like any full-screen program, turns on terminal modes such as mouse
+  reporting and turns them off when it exits. When the connection dies, the
+  "off" never arrives, so the modes stay on in Windows Terminal.
+
+The profile handles both. `ssh` is a small wrapper around `ssh.exe` that:
+
+1. Adds `ServerAliveInterval=15` and `ServerAliveCountMax=3`, so a dead
+   connection ends within about 45 seconds instead of hanging.
+2. Runs `reset-term` when `ssh` exits, which turns those modes off again.
+
+If it still happens:
+
+| Problem | Fix |
+|---|---|
+| Frozen inside `ssh` | Press **Enter**, then **`~`**, then **`.`**. That's ssh's escape for "disconnect now". |
+| Garbage after any other program | Type `reset-term` and press Enter. What you type may look garbled; Enter still works. |
+| Neither works | Close the tab (Ctrl+Shift+W) and open a new one. |
+
 ## SSH into Windows from the Mac
 
 For passwordless SSH from `loops-mac-mini`/macOS into this Windows machine,
