@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Start mu4e in the background (no main menu callback), then open Inbox once
+# the mu server is ready.  Kick off a mail sync/index update after that.
 exec emacs -nw \
   --eval "(progn
              (require 'mu4e)
-             (mu4e)
-             (mu4e-headers-search \"maildir:/INBOX\")
-             (mu4e-update-mail-and-index t))"
+             (mu4e--init-handlers)
+             (mu4e--start
+              (lambda ()
+                (mu4e-search-maildir \"/INBOX\")
+                (mu4e-update-mail-and-index t))))"

@@ -31,9 +31,9 @@ off a mail sync/index update.
 From another machine, connect and launch it with a TTY:
 
 ```sh
-ssh -t ubuntu '~/.local/bin/mu4e-inbox'
+ssh -t ubuntu 'TERM=xterm-256color COLORTERM=truecolor ~/.local/bin/mu4e-inbox'
 ```
 
-The Windows/macOS/Linux wrapper scripts can simply run that command. SSH
-keepalives should be configured in the client-side `~/.ssh/config` for the
-`ubuntu` host.
+The Windows/macOS/Linux wrapper scripts can simply run that command from any
+local directory. SSH keepalives should be configured in the client-side
+`~/.ssh/config` for the `ubuntu` host.
