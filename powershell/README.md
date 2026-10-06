@@ -28,6 +28,8 @@ main shell. The same profile also works in the built-in Windows PowerShell
   which made accepted text look like it was still a suggestion.
 - **Ctrl-r = fzf history search** (via PSFzf), like fzf's zsh widget. Type
   to fuzzy-filter your history, and Enter puts the command on the prompt.
+- **`killp <partial-name>`**: kills every process whose `ProcessName`
+  contains the given text, for example `killp node`. Use `-WhatIf` to preview.
 - **zle-style editing**, matching `zsh/init.zsh` and
   `zsh/clipboard_wrapper.zsh` (with `zsh-delsel-mode`):
 
@@ -74,6 +76,8 @@ main shell. The same profile also works in the built-in Windows PowerShell
 | `.config/powershell/profile.ps1` | `~/.config/powershell/profile.ps1` (the actual profile) |
 | `.config/powershell/zle.ps1` | `~/.config/powershell/zle.ps1` (the zle-style editing above, dot-sourced by the profile) |
 | `.config/oh-my-posh/robbyrussell.omp.json` | `~/.config/oh-my-posh/robbyrussell.omp.json` (the theme) |
+| `.local/bin/killp.ps1` | `~/.local/bin/killp.ps1` (`killp <partial-name>` process killer; the profile prepends `~/.local/bin` to `PATH`) |
+| `.local/bin/sshmail.ps1` | `~/.local/bin/sshmail.ps1` (mail-aware SSH wrapper; forwards Gpg4win gpg-agent to Linux mail hosts, plain SSH for macOS/non-Linux hosts) |
 
 ## Setup
 
@@ -231,11 +235,14 @@ Preview changes with `. $PROFILE` in the current shell.
 
 ## GPG/YubiKey forwarding for mu4e on Ubuntu
 
-Gpg4win and the PowerShell profile include `sshmail`, which forwards the full
-Windows GPG agent to Ubuntu through a loopback TCP bridge. This is needed
-because Windows OpenSSH cannot use GnuPG's drive-letter socket directly. The
-YubiKey remains attached to Windows; PIN prompts come from the local Gpg4win
-agent.
+Gpg4win and `~/.local/bin/sshmail.ps1` provide `sshmail`, which forwards the
+full Windows GPG agent to Linux mail hosts through a loopback TCP bridge. This
+is needed because Windows OpenSSH cannot use GnuPG's drive-letter socket
+directly. `sshmail.ps1` deliberately prefers Gpg4win's `gpgconf.exe` over
+Git/MSYS GnuPG, since only the Gpg4win socket file has the localhost port +
+nonce that the bridge can use. The YubiKey remains attached to Windows; PIN
+prompts come from the local Gpg4win agent. For macOS/non-Linux mail hosts,
+`sshmail.ps1` falls back to plain SSH.
 
 ```powershell
 winget install GnuPG.Gpg4win

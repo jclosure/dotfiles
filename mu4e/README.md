@@ -110,11 +110,12 @@ port conflicts.
 
 ### Windows client
 
-Install from a Windows clone of this dotfiles repo:
+Install from a Windows clone of this dotfiles repo.  Stow both `powershell`
+(for `~/.local/bin/sshmail.ps1`) and `mu4e`:
 
 ```powershell
 cd ~/dotfiles
-./winstow.ps1 mu4e
+./winstow.ps1 powershell mu4e
 ~/.local/bin/check-mail.ps1 --remote user@ubuntu
 ```
 

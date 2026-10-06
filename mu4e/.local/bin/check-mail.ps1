@@ -33,6 +33,14 @@ if ($Mode -ne '--remote' -or [string]::IsNullOrWhiteSpace($Remote)) {
 $ErrorActionPreference = 'Stop'
 $port = if ($env:MU4E_URL_OPENER_PORT) { [int]$env:MU4E_URL_OPENER_PORT } else { 8765 }
 $helper = Join-Path $PSScriptRoot 'mu4e-url-opener.ps1'
+$sshmail = Join-Path $HOME '.local\bin\sshmail.ps1'
+if (-not (Test-Path -LiteralPath $sshmail)) {
+    $sshmail = Join-Path $HOME 'dotfiles\powershell\.local\bin\sshmail.ps1'
+}
+if (-not (Test-Path -LiteralPath $sshmail)) {
+    Write-Error 'check-mail.ps1: sshmail.ps1 not found; run ./winstow.ps1 powershell or sync dotfiles'
+    exit 1
+}
 
 # Start helper if it is not already listening.
 $already = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort $port -State Listen -ErrorAction SilentlyContinue
@@ -45,4 +53,5 @@ if (-not $already) {
 
 $remoteCommand = "export TERM=xterm-256color COLORTERM=truecolor MU4E_OPEN_URL_ENDPOINT=http://127.0.0.1:$port/open; if command -v mu4e-inbox >/dev/null 2>&1; then exec mu4e-inbox; elif [ -x `"`$HOME/.local/bin/mu4e-inbox`" ]; then exec `"`$HOME/.local/bin/mu4e-inbox`"; else echo 'check-mail.ps1: mu4e-inbox not found on remote host; install dotfiles/mu4e there with: cd ~/dotfiles && stow mu4e' >&2; exit 127; fi"
 
-ssh -t -R "127.0.0.1:$port`:127.0.0.1:$port" $Remote $remoteCommand
+& $sshmail -SshArg @('-t', '-R', "127.0.0.1:$port`:127.0.0.1:$port") $Remote $remoteCommand
+exit $LASTEXITCODE
