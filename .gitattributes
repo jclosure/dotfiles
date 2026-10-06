@@ -1,6 +1,7 @@
 # herd is a sh/python polyglot: CRLF would break its sh stub in Git Bash
 herd/.local/bin/herd text eol=lf
 mu4e/.local/bin/mu4e-inbox text eol=lf
-mu4e/.local/bin/mu4e-ubuntu.sh text eol=lf
+mu4e/.local/bin/check-mail.sh text eol=lf
+mu4e/.local/bin/check-remote-mail.sh text eol=lf
 mu4e/.local/bin/mu4e-url-opener.sh text eol=lf
 *.cmd text eol=crlf

@@ -2,8 +2,13 @@
 # Starts a local localhost-only URL opener and forwards a remote localhost port
 # to it so mu4e HTML links open quickly on this Windows desktop.
 
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$Remote
+)
+
 $ErrorActionPreference = 'Stop'
-$port = 8765
+$port = if ($env:MU4E_URL_OPENER_PORT) { [int]$env:MU4E_URL_OPENER_PORT } else { 8765 }
 $helper = Join-Path $PSScriptRoot 'mu4e-url-opener.ps1'
 
 # Start helper if it is not already listening.
@@ -15,4 +20,4 @@ if (-not $already) {
     Start-Sleep -Milliseconds 300
 }
 
-ssh -t -R "127.0.0.1:$port`:127.0.0.1:$port" ubuntu "TERM=xterm-256color COLORTERM=truecolor MU4E_OPEN_URL_ENDPOINT=http://127.0.0.1:$port/open /home/user/.local/bin/mu4e-inbox"
+ssh -t -R "127.0.0.1:$port`:127.0.0.1:$port" $Remote "TERM=xterm-256color COLORTERM=truecolor MU4E_OPEN_URL_ENDPOINT=http://127.0.0.1:$port/open /home/user/.local/bin/mu4e-inbox"

@@ -4,16 +4,22 @@
 # localhost port to it so HTML email links open quickly on this Mac/Linux client.
 set -euo pipefail
 
-host="${1:-${MU4E_UBUNTU_HOST:-user@ubuntu}}"
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $(basename "$0") user@ubuntu" >&2
+    echo "       MU4E_URL_OPENER_PORT=8765 $(basename "$0") user@ubuntu" >&2
+    exit 2
+fi
+
+host="$1"
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 helper="$script_dir/mu4e-url-opener.sh"
 
 if ! command -v python3 >/dev/null 2>&1; then
-    echo "mu4e-ubuntu.sh: python3 is required for the local URL opener" >&2
+    echo "$(basename "$0"): python3 is required for the local URL opener" >&2
     exit 1
 fi
 
-# Use a per-session high port by default.  A fixed 8765 can collide with an old
+# Use a per-session high port by default.  A fixed port can collide with an old
 # helper/session and then ssh reports confusing "connect to port failed" errors.
 if [[ -n "${MU4E_URL_OPENER_PORT:-}" ]]; then
     port="$MU4E_URL_OPENER_PORT"
@@ -51,7 +57,7 @@ if ! port_is_listening; then
 fi
 
 if ! port_is_listening; then
-    echo "mu4e-ubuntu.sh: local URL opener failed to listen on 127.0.0.1:$port" >&2
+    echo "$(basename "$0"): local URL opener failed to listen on 127.0.0.1:$port" >&2
     echo "See /tmp/mu4e-url-opener.log" >&2
     exit 1
 fi
