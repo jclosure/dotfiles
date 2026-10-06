@@ -61,8 +61,18 @@ On Unix-like clients, stow this package and run:
 ~/.local/bin/mu4e-ubuntu.sh
 ```
 
-This opens the same remote Ubuntu mu4e Inbox. It does not start the Windows-only
-fast URL forwarder; links use the Emacs config's ssh-back/OSC52 fallback path.
+By default it connects to `user@ubuntu`. Override that either by passing the
+SSH target as the first argument or by setting `MU4E_UBUNTU_HOST`:
+
+```sh
+~/.local/bin/mu4e-ubuntu.sh user@ubuntu
+MU4E_UBUNTU_HOST=user@ubuntu.local ~/.local/bin/mu4e-ubuntu.sh
+```
+
+The launcher starts a tiny localhost-only URL opener on the Mac/Linux client
+and reverse-forwards it into the Ubuntu SSH session, just like the Windows
+launcher. HTML email links such as `View messages` should open quickly in the
+local browser without holding Ctrl.
 
 ## Generic SSH usage
 
