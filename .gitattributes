@@ -2,6 +2,5 @@
 herd/.local/bin/herd text eol=lf
 mu4e/.local/bin/mu4e-inbox text eol=lf
 mu4e/.local/bin/check-mail.sh text eol=lf
-mu4e/.local/bin/check-remote-mail.sh text eol=lf
 mu4e/.local/bin/mu4e-url-opener.sh text eol=lf
 *.cmd text eol=crlf
