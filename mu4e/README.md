@@ -53,6 +53,17 @@ The `.cmd` launcher delegates to the PowerShell launcher:
 %USERPROFILE%\.local\bin\mu4e-ubuntu.cmd
 ```
 
+## macOS/Linux client launcher
+
+On Unix-like clients, stow this package and run:
+
+```sh
+~/.local/bin/mu4e-ubuntu.sh
+```
+
+This opens the same remote Ubuntu mu4e Inbox. It does not start the Windows-only
+fast URL forwarder; links use the Emacs config's ssh-back/OSC52 fallback path.
+
 ## Generic SSH usage
 
 Without the Windows launcher/forwarder, you can still connect manually:
