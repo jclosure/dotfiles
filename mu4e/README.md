@@ -1,9 +1,8 @@
 # mu4e helpers
 
-This stow package installs `mu4e-inbox`, a small launcher for the remote
-Ubuntu mail setup.
+This stow package installs helpers for the remote Ubuntu mu4e setup.
 
-## Install on Ubuntu
+## Ubuntu mail host
 
 From `~/dotfiles` on the Ubuntu machine:
 
@@ -17,9 +16,7 @@ That creates:
 ~/.local/bin/mu4e-inbox -> ~/dotfiles/mu4e/.local/bin/mu4e-inbox
 ```
 
-Make sure `~/.local/bin` is on `PATH`, or run it by full path.
-
-## Usage
+Usage on Ubuntu:
 
 ```sh
 mu4e-inbox
@@ -28,12 +25,41 @@ mu4e-inbox
 It starts terminal Emacs, opens mu4e, opens the Inbox, and immediately kicks
 off a mail sync/index update.
 
-From another machine, connect and launch it with a TTY:
+## Windows client launcher
+
+On Windows, stow/winstow this package so these scripts are available under
+`~/.local/bin`:
+
+```powershell
+./winstow.ps1 mu4e
+~/.local/bin/mu4e-ubuntu.ps1
+```
+
+`mu4e-ubuntu.ps1` starts a tiny localhost-only URL opener on the Windows
+machine, then SSHes to Ubuntu with a reverse port forward:
+
+```text
+Ubuntu Emacs -> 127.0.0.1:8765 on Ubuntu -> SSH reverse forward ->
+Windows 127.0.0.1:8765 -> Start-Process URL
+```
+
+That makes HTML email links such as `View messages` open quickly in the local
+Windows browser without a new SSH login for each click. The helper listens only
+on `127.0.0.1`; it is not exposed to the LAN.
+
+The `.cmd` launcher delegates to the PowerShell launcher:
+
+```cmd
+%USERPROFILE%\.local\bin\mu4e-ubuntu.cmd
+```
+
+## Generic SSH usage
+
+Without the Windows launcher/forwarder, you can still connect manually:
 
 ```sh
 ssh -t ubuntu 'TERM=xterm-256color COLORTERM=truecolor ~/.local/bin/mu4e-inbox'
 ```
 
-The Windows/macOS/Linux wrapper scripts can simply run that command from any
-local directory. SSH keepalives should be configured in the client-side
-`~/.ssh/config` for the `ubuntu` host.
+SSH keepalives should be configured in the client-side `~/.ssh/config` for the
+`ubuntu` host.
