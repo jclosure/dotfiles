@@ -91,7 +91,8 @@ stow herd
 herd setup
 
 # zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
-# missing, then sources zsh/init.zsh
+# missing, sources zsh/init.zsh, and adds a ~/.zshenv loader so non-interactive
+# ssh commands see Homebrew paths such as /opt/homebrew/bin.
 echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```
 

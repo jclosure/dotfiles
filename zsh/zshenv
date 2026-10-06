@@ -1,0 +1,13 @@
+# Minimal zsh startup for every zsh invocation, including non-interactive SSH
+# commands.  Keep this file quiet and fast: no prompts, plugin managers, or
+# interactive-only setup.
+
+# Homebrew is commonly initialized from ~/.zprofile or ~/.zshrc, but ssh
+# host command runs a non-interactive shell that does not read those files.
+# Keep ~/.zshenv fast: just add the standard Homebrew command directories.
+if [[ -d /opt/homebrew/bin ]]; then
+  path=(/opt/homebrew/bin /opt/homebrew/sbin $path)
+elif [[ -d /usr/local/bin ]]; then
+  path=(/usr/local/bin /usr/local/sbin $path)
+fi
+export PATH

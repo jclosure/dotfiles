@@ -196,6 +196,20 @@ ssh -t user@ubuntu 'TERM=xterm-256color COLORTERM=truecolor ~/.local/bin/mu4e-in
 In that mode, links use the slower fallback path instead of the fast forwarded
 local opener.
 
+### macOS remote: `emacs: not found`
+
+If the remote mail host is macOS and `mu4e-inbox` says `exec: emacs: not
+found`, the SSH command is not seeing Homebrew's PATH.  Install/source the zsh
+dotfiles on the Mac:
+
+```sh
+echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
+source ~/dotfiles/install.sh
+```
+
+That adds a small `~/.zshenv` loader for `zsh/zshenv`, which prepends
+`/opt/homebrew/bin` or `/usr/local/bin` for non-interactive SSH commands.
+
 ## SSH keepalives
 
 Configure keepalives in the client-side `~/.ssh/config` for your remote mail

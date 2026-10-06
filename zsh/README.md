@@ -47,5 +47,10 @@ Installation
 ```sh
 cd ~
 git clone git@github.com:jclosure/dotfiles.git
-echo "source $HOME/dotfiles/init.zsh" >> ~/.zshrc
+echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```
+
+`install.sh` also adds a small loader to `~/.zshenv` so non-interactive zsh
+sessions, such as `ssh host command`, source `zsh/zshenv`.  That file performs
+minimal Homebrew PATH setup on macOS so commands installed by brew are visible
+to remote launchers.

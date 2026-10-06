@@ -43,4 +43,6 @@ if (-not $already) {
     Start-Sleep -Milliseconds 300
 }
 
-ssh -t -R "127.0.0.1:$port`:127.0.0.1:$port" $Remote "TERM=xterm-256color COLORTERM=truecolor MU4E_OPEN_URL_ENDPOINT=http://127.0.0.1:$port/open /home/user/.local/bin/mu4e-inbox"
+$remoteCommand = "export TERM=xterm-256color COLORTERM=truecolor MU4E_OPEN_URL_ENDPOINT=http://127.0.0.1:$port/open; if command -v mu4e-inbox >/dev/null 2>&1; then exec mu4e-inbox; elif [ -x `"`$HOME/.local/bin/mu4e-inbox`" ]; then exec `"`$HOME/.local/bin/mu4e-inbox`"; else echo 'check-mail.ps1: mu4e-inbox not found on remote host; install dotfiles/mu4e there with: cd ~/dotfiles && stow mu4e' >&2; exit 127; fi"
+
+ssh -t -R "127.0.0.1:$port`:127.0.0.1:$port" $Remote $remoteCommand
