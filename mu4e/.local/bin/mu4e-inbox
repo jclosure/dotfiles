@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec emacs -nw \
+  --eval "(progn
+             (require 'mu4e)
+             (mu4e)
+             (mu4e-headers-search \"maildir:/INBOX\")
+             (mu4e-update-mail-and-index t))"

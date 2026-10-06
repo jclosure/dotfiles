@@ -22,6 +22,7 @@ directory is a module; most are stow packages that get symlinked into
 | `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
 | `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
 | `powershell`       | stow package (Windows) | Oh My Zsh-style PowerShell 7 (also works in 5.1): Oh My Posh `robbyrussell` prompt with Windows logo + hostname, plain `ls` (directories bold blue), posh-git, Emacs keys, fzf history search on Ctrl-r, fish-like gray history suggestions (like zsh-autosuggestions). Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
+| `mu4e`             | stow package (Ubuntu/Linux) | Installs `mu4e-inbox`, a terminal Emacs launcher that opens mu4e Inbox and starts a sync/index update. See [`mu4e/README.md`](mu4e/README.md). |
 | `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
 | `herd`             | stow package (macOS, Linux, Windows) | herdr set up identically everywhere: `herd` command + agent dashboard, generated per-OS herdr config, and Handy push-to-talk voice (installed and configured per OS, including the Wayland desktop shortcut on Linux; press **Ctrl+Shift+Space** on every OS to start recording and again to type the text). Run `herd setup` after stowing; `herd update` upgrades everything. See [`herd/README.md`](herd/README.md). |
 
@@ -78,6 +79,9 @@ hermes-dotfiles-apply
 # safe OpenClaw integration; then apply portable settings
 stow openclaw
 openclaw-dotfiles-apply
+
+# mu4e helper launcher on the Ubuntu mail host
+stow mu4e
 
 # shared agent credentials (values remain in macOS Keychain)
 stow agent-secrets
