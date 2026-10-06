@@ -71,8 +71,10 @@ MU4E_UBUNTU_HOST=user@ubuntu.local ~/.local/bin/mu4e-ubuntu.sh
 
 The launcher starts a tiny localhost-only URL opener on the Mac/Linux client
 and reverse-forwards it into the Ubuntu SSH session, just like the Windows
-launcher. HTML email links such as `View messages` should open quickly in the
-local browser without holding Ctrl.
+launcher. It chooses a random high port per session to avoid stale-port
+collisions; set `MU4E_URL_OPENER_PORT` if you need a fixed port. HTML email
+links such as `View messages` should open quickly in the local browser without
+holding Ctrl.
 
 ## Generic SSH usage
 
