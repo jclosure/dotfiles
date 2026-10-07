@@ -3,7 +3,9 @@
   "all": {
     "shortcut_activation": "hold_or_toggle",
     "filler_word_removal_enabled": true,
-    "clipboard_handling": "dont_modify"
+    "clipboard_handling": "dont_modify",
+    "autostart_enabled": true,
+    "start_hidden": true
   },
   "windows": {
     "bindings": {

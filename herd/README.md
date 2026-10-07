@@ -158,12 +158,15 @@ permission, or the shortcut isn't bound.
      manager, so this works even when you run it over SSH.
 2. **Linux on Wayland:** adds the desktop shortcut described above.
 3. **The first time on each machine:** opens Handy so you can pick a model
-   (Parakeet is fast on a normal processor; Whisper is better with a GPU) and
+   (we use Canary 180M Flash, Q8; see [Choices that stay per machine](#choices-that-stay-per-machine)) and
    grant microphone access. On macOS, also grant **Accessibility** so Handy
    can type. Then run `herd setup` again.
 4. **Applies the shared settings** from [`voice/handy.json`](voice/handy.json)
    to Handy's `settings_store.json`: the shortcut, hold-or-toggle activation,
-   filler-word removal, and not touching the clipboard. Handy rewrites that
+   filler-word removal, not touching the clipboard, and launching at login
+   straight to the tray (`autostart_enabled`, `start_hidden`). Handy registers
+   itself to start at login when it next starts with that setting on (on
+   Windows, the `Handy` value under `HKCU\…\CurrentVersion\Run`). Handy rewrites that
    file when it exits, so herd stops Handy, edits the file, keeps a backup,
    and restarts it. Only the listed keys are changed. Your model choice,
    history and any API keys stay per machine and never go in this repo.
@@ -174,6 +177,28 @@ permission, or the shortcut isn't bound.
 | macOS | `/Applications/Handy.app` | `~/Library/Application Support/com.pais.handy/settings_store.json` |
 | Linux | `/usr/bin/handy` (package `handy`) | `~/.local/share/com.pais.handy/settings_store.json` |
 | Linux, COSMIC shortcut | | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom` |
+
+### Choices that stay per machine
+
+`herd setup` doesn't set these, so make the same choices by hand on a new
+machine:
+
+| Setting | Our choice | Why it isn't in `handy.json` |
+|---|---|---|
+| Model | **Canary 180M Flash (Q8)** (`handy-computer/canary-180m-flash-gguf/canary-180m-flash-Q8_0.gguf`), used on Windows and the Mac | Handy has to download it first; choose it during first-run setup. |
+| Microphone | System default | Hardware differs per machine. |
+| Post-processing (AI cleanup) | Off, with no API keys | API keys must never be committed. |
+
+Everything else is left at Handy's defaults. A new machine matches when its
+`settings_store.json` differs from another machine's only in the model,
+microphone and the post-processing shortcut below.
+
+**Post-processing shortcut.** Handy's default for *Transcribe with
+Post-Processing* is Ctrl+Shift+Space on Windows (Option+Shift+Space on macOS),
+the same key herd gives plain *Transcribe*. That's deliberate. Ctrl+Space is
+reserved for Emacs and the shells, and post-processing is off, so plain
+Transcribe is the one that fires. If you ever turn post-processing on, give
+it a different key first.
 
 To change the shortcut or another setting, edit `voice/handy.json` (the
 `wayland_shortcut` key covers Linux on Wayland), commit, and run `herd setup`
@@ -255,6 +280,7 @@ first; `herd update` stops rather than merging for you.
 | F1 does nothing | Run `herd doctor`. The herdr **server** has to find `herd` on its `PATH`, so check that `~/.local/bin` is on it. |
 | `herd: needs Python 3.8+ on PATH` | Install Python 3 (see [Prerequisites](#prerequisites)). |
 | Voice shortcut does nothing | Run `herd doctor`. Finish Handy's first-run setup, then `herd setup`. macOS: grant Microphone and Accessibility to Handy. Linux on Wayland: check that `wayland shortcut` reports it's set; on desktops other than COSMIC, add the shortcut yourself. |
+| Windows: Ctrl+Shift+Space opens Windows Terminal's new-tab menu | Handy isn't running, so the key reaches the terminal. Start `%LOCALAPPDATA%\Handy\handy.exe`, and run `herd setup` so it starts at login. |
 | Text doesn't appear on Linux | Wayland needs `wtype` and X11 needs `xdotool`; `herd setup` installs them. On GNOME's Wayland, `wtype` doesn't work, so use `ydotool` (see Handy's README). |
 | Dashboard shows `herdr: …` errors | herdr isn't reachable from that pane. Run `herdr status`. |
 
