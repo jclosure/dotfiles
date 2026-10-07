@@ -1,187 +1,129 @@
 # dotfiles
 
-Managed with [GNU Stow](https://www.gnu.org/software/stow/). Each top-level
-directory is a module; most are stow packages that get symlinked into
-`$HOME`, but not all of them — see below.
+My config for macOS, Linux and Windows. Each top-level directory is a
+**module**. Most modules are [GNU Stow](https://www.gnu.org/software/stow/)
+packages that get symlinked into your home directory. On Windows,
+[`winstow.ps1`](winstow.ps1) does the same job.
 
-## Modules
+- [Getting started](#getting-started)
+- [Modules](#modules)
+- [Day to day](#day-to-day)
 
-| Module            | Type          | What it does                                                                 |
-|--------------------|---------------|-------------------------------------------------------------------------------|
-| `emacs-minimal`    | stow package  | Symlinks `.emacs.d` into `$HOME`. Near-stock Emacs, no third-party packages.  |
-| `emacs-light`      | stow package  | Symlinks `.emacs.d` into `$HOME`. package.el + a few quality-of-life packages. |
-| `emacs-ide`        | stow package  | Symlinks `.emacs.d` into `$HOME`. `.emacs.d` is a submodule: [jclosure/vscode-flavored-emacs-2026](https://github.com/jclosure/vscode-flavored-emacs-2026). |
-| `emacs-experimental` | stow package | Symlinks `.emacs.d` into `$HOME`. Scratch space for trying things out.       |
-| `zsh`              | lib (not stowed) | Zsh enhancements — highlighted-text delete, cross-OS system clipboard integration. Its `.stow-local-ignore` excludes the whole directory from stow, so it's never symlinked; instead it's sourced directly from `~/.zshrc`. |
-| `cmux`             | stow package  | Symlinks `.config/cmux` into `$HOME`. **Note:** `cmux.json` is stored with `0600` perms locally since cmux treats it as sensitive; this repo is public, so double-check it before committing if you ever set `socketPassword` or similar. |
-| `ghostty`          | stow package  | Symlinks `.config/ghostty` into `$HOME`. |
-| `terminator`       | stow package (Linux) | Symlinks `.config/terminator` into `$HOME`. Ctrl+Alt+Arrow pane focus; F1 unbound from Terminator help so it passes through to the app. Edits made in Terminator's Preferences dialog write through the symlink into this repo. |
-| `pi`               | stow package  | Symlinks global Pi agent instructions under `.pi/agent/`. Credentials, sessions, caches, and machine-local settings remain untracked. |
-| `agent-skills`     | stow package  | Installs personal cross-agent skills under `.agents/skills`; Pi discovers them directly and Hermes reads them as an external skill directory. |
-| `claude-code`      | stow package  | Installs `claude-code-dotfiles-apply`, which marks `$HOME` (or given folders) as trusted in `~/.claude.json` so Claude Code stops showing the folder-trust prompt. The config file itself is never tracked. See [`claude-code/README.md`](claude-code/README.md). |
-| `hermes`           | stow package  | Installs a safe Hermes integration helper without tracking `.env`, mutable/private configuration, memories, sessions, databases, or runtime state. |
-| `openclaw`         | stow package  | Installs a reviewed portable OpenClaw config patch and apply helper while excluding credentials, identities, conversations, browser data, workspaces, and runtime state. |
-| `powershell`       | stow package (Windows) | Oh My Zsh-style PowerShell 7 (also works in 5.1): Oh My Posh `robbyrussell` prompt with Windows logo + hostname, plain `ls` (directories bold blue), posh-git, Emacs keys, fzf history search on Ctrl-r, fish-like gray history suggestions (like zsh-autosuggestions). Stow with `winstow`; `$PROFILE` is a one-line loader (see [`powershell/README.md`](powershell/README.md)). |
-| `mu4e`             | stow package (mail helpers) | Installs local `check-mail.sh`, remote `check-remote-mail.*` launchers, and URL forwarding helpers so remote mu4e links open in the client browser. See [`mu4e/README.md`](mu4e/README.md). |
-| `agent-secrets`    | stow package  | Installs macOS Keychain-backed `agent-secret` and `with-agent-secrets` utilities plus a version-controlled environment-variable map containing names only. |
-| `herd`             | stow package (macOS, Linux, Windows) | herdr set up identically everywhere: `herd` command + agent dashboard, generated per-OS herdr config, and Handy push-to-talk voice (installed and configured per OS, including the Wayland desktop shortcut on Linux; press **Ctrl+Shift+Space** on every OS to start recording and again to type the text). Run `herd setup` after stowing; `herd update` upgrades everything. Per-OS install steps, prerequisites included: [`herd/README.md` → Setting up a new machine](herd/README.md#setting-up-a-new-machine). |
+---
 
-### Switching Emacs configs
+## Getting started
 
-All four `emacs-*` modules symlink to the same target, `~/.emacs.d`, so
-only one can be stowed at a time — stow refuses (safely; it aborts before
-touching the filesystem) if you try to stow a second one on top of an
-active one. Switch by unstowing the current one first:
+### 1. Prerequisites
 
-```sh
-stow -D emacs-minimal      # deactivate current
-stow emacs-ide             # activate another
+| macOS | Linux (Debian/Ubuntu/Pop!_OS) | Windows 11 |
+|---|---|---|
+| [Homebrew](https://brew.sh), then `brew install git stow` | `sudo apt install git stow curl` | See below |
+
+**Windows only.** Run this in the built-in PowerShell, then do everything else
+in **PowerShell 7**:
+
+```powershell
+winget install --id Git.Git -e
+winget install --id Microsoft.PowerShell -e
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned               # lets winstow.ps1 and the profile run
+[Environment]::SetEnvironmentVariable('HOME', $env:USERPROFILE, 'User')   # ~ means C:\Users\<you>
 ```
 
-or in one step:
+Also turn on **Developer Mode** (Settings → System → For developers) so
+symlinks work without admin. Then open a new terminal.
+
+### 2. Clone
 
 ```sh
-stow -D emacs-minimal && stow emacs-ide
+git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~/dotfiles
+cd ~/dotfiles
 ```
 
-## Installation
+Use `git@github.com:jclosure/dotfiles.git` if you'll push from this machine.
+Already cloned without `--recurse-submodules`? Run
+`git submodule update --init --recursive`. Only `emacs-ide` needs it.
+
+### 3. Link the modules you want
+
+From `~/dotfiles`, link one module at a time:
 
 ```sh
-cd ~
-git clone --recurse-submodules git@github.com:jclosure/dotfiles.git
-cd dotfiles
+stow <module>              # macOS, Linux
+.\winstow.ps1 <module>     # Windows
+```
 
-# pick one emacs-* module (see table above)
-stow emacs-ide
+Some modules need an extra step after linking. Each module's README has the
+details.
 
-# terminal setup
-stow cmux
-stow ghostty
-stow terminator   # Linux
-# iTerm2 (macOS): Nerd symbol fonts, then import zsh/Development.json as the
-# default profile. See zsh/README.md "iTerm2 profile"
-brew install --cask font-symbols-only-nerd-font
+| Machine | Typical set | Then |
+|---|---|---|
+| **macOS** | `emacs-ide` `ghostty` `cmux` `herd` `claude-code` `pi` `agent-skills` `agent-secrets` `hermes` `openclaw` | zsh setup, `herd setup`, the `*-dotfiles-apply` helpers |
+| **Linux** | `emacs-ide` `ghostty` `terminator` `herd` `claude-code` `pi` `agent-skills` `mu4e` | zsh setup, `herd setup`, `claude-code-dotfiles-apply` |
+| **Windows** | `emacs-ide` `powershell` `herd` | [PowerShell setup](powershell/README.md), [herd setup](herd/README.md#windows) |
 
-# global Pi agent instructions (never credentials or session history)
-stow pi
+**zsh (macOS, Linux):** zsh isn't stowed. Source it instead:
 
-# personal skills shared by compatible agents
-stow agent-skills
-
-# Claude Code: trust $HOME so the folder-trust prompt stops appearing
-stow claude-code
-claude-code-dotfiles-apply
-
-# safe Hermes integration; then apply portable settings
-stow hermes
-hermes-dotfiles-apply
-
-# safe OpenClaw integration; then apply portable settings
-stow openclaw
-openclaw-dotfiles-apply
-
-# mu4e helper launcher on the Ubuntu mail host
-stow mu4e
-
-# shared agent credentials (values remain in macOS Keychain)
-stow agent-secrets
-
-# herdr + dashboard + voice (Windows: .\winstow.ps1 herd)
-stow herd
-herd setup
-
-# zsh is a lib, not a stow package — install.sh installs Oh My Zsh if it's
-# missing, sources zsh/init.zsh, and adds a ~/.zshenv loader so non-interactive
-# ssh commands see Homebrew paths such as /opt/homebrew/bin.
+```sh
 echo "source $HOME/dotfiles/install.sh" >> ~/.zshrc
 ```
 
-Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive` instead (only needed for `emacs-ide`, the only module with a submodule).
+**herd (all three):** herdr, the agent dashboard and Handy voice input. It has
+its own prerequisites (herdr, Python), so follow
+[herd → Setting up a new machine](herd/README.md#setting-up-a-new-machine).
 
-### Windows
+---
 
-Quick start for a fresh Windows 11 machine. The main shell is PowerShell 7,
-which gets installed first from the built-in Windows PowerShell 5.1. Everything
-below also works in 5.1.
+## Modules
 
-**1. One-time prerequisites**
+| Module | OS | What it does | Docs |
+|---|---|---|---|
+| `herd` | all | herdr set up the same everywhere: `herd` command, agent dashboard, per-OS herdr config, and Handy voice input (**Ctrl+Shift+Space**). `herd update` upgrades all of it. | [README](herd/README.md) |
+| `emacs-ide` | all | Full Emacs IDE. `.emacs.d` is a submodule: [vscode-flavored-emacs-2026](https://github.com/jclosure/vscode-flavored-emacs-2026). | [upstream](https://github.com/jclosure/vscode-flavored-emacs-2026) |
+| `emacs-light` | all | Emacs with package.el and a few quality-of-life packages. | |
+| `emacs-minimal` | all | Near-stock Emacs, no third-party packages. | |
+| `emacs-experimental` | all | Scratch space for trying things out. | |
+| `zsh` | macOS, Linux | Zsh enhancements: selected-text delete, system clipboard, Oh My Zsh, iTerm2 profile. Sourced, not stowed. | [README](zsh/README.md) |
+| `powershell` | Windows | PowerShell set up like Oh My Zsh: Oh My Posh prompt, posh-git, Emacs keys, fzf history search on Ctrl+R, gray history suggestions. | [README](powershell/README.md) |
+| `ghostty` | macOS, Linux | Ghostty terminal config. | |
+| `cmux` | macOS | cmux config. Kept at `0600` because cmux treats it as sensitive. This repo is public, so check it before committing if you set `socketPassword`. | |
+| `terminator` | Linux | Terminator config: Ctrl+Alt+Arrow moves between panes; F1 passes through to the app. | |
+| `claude-code` | all | `claude-code-dotfiles-apply` marks `$HOME` as trusted, so Claude Code stops asking. | [README](claude-code/README.md) |
+| `pi` | all | Global Pi agent instructions. Contains no credentials or sessions. | |
+| `agent-skills` | all | Personal skills under `~/.agents/skills`, used by Pi and Hermes. | [README](agent-skills/README.md) |
+| `agent-secrets` | macOS | `agent-secret` and `with-agent-secrets`, backed by the Keychain. Only names are stored here. | [README](agent-secrets/README.md) |
+| `hermes` | macOS, Linux | Hermes integration. Run `hermes-dotfiles-apply` after linking. | [README](hermes/README.md) |
+| `openclaw` | macOS, Linux | Portable OpenClaw config patch. Run `openclaw-dotfiles-apply` after linking. | [README](openclaw/README.md) |
+| `mu4e` | all | `check-mail` launchers for sh, PowerShell and cmd, plus helpers that open links from remote mu4e in your local browser. | [README](mu4e/README.md) |
 
-```powershell
-# Symlinks without admin: Settings → System → For developers → Developer Mode = On
+The agent modules haven't been tried on Windows. Emacs on Windows works
+except for mail, which needs mu/mu4e. Install it with `winget install GNU.Emacs`
+and put its `bin` directory on `PATH`. The
+[emacs-ide README](https://github.com/jclosure/vscode-flavored-emacs-2026#windows)
+covers tree-sitter and LLVM.
 
-# PowerShell 7; then open it (Windows Terminal → PowerShell) for the rest
-winget install Microsoft.PowerShell
+---
 
-# Allow local scripts (winstow.ps1, the profile) to run
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+## Day to day
 
-# Make ~ mean C:\Users\<you> for Emacs and friends (otherwise %APPDATA%)
-[Environment]::SetEnvironmentVariable('HOME', $env:USERPROFILE, 'User')
+**Update a machine** after pushing changes from another one:
 
-# Then open a new terminal and clone
-cd ~
-git clone --recurse-submodules https://github.com/jclosure/dotfiles.git
-cd dotfiles
+```sh
+git -C ~/dotfiles pull --ff-only
+herd setup          # or `herd update`, which also upgrades herdr and Handy
 ```
 
-**2. winstow: stow for Windows**
+**Switch Emacs configs.** All `emacs-*` modules link to `~/.emacs.d`, so only
+one can be linked at a time. Unlink the current one first:
 
-GNU Stow doesn't run natively on Windows. [`winstow.ps1`](winstow.ps1) is a
-PowerShell port of Stow 2.4.1 that takes the same options and behaves the
-same way: ignore files, `.stowrc`, tree folding, conflict checks,
-`--adopt`, `--dotfiles`. It creates the same relative symlinks. It was
-tested against the real stow source and gave identical results.
-
-```powershell
-.\winstow.ps1 emacs-ide                       # stow emacs-ide
-.\winstow.ps1 -n -v emacs-ide                 # dry run: show what it would do
-.\winstow.ps1 -D emacs-ide -S emacs-minimal   # switch in one step; aborts before touching anything on conflict
+```sh
+stow -D emacs-minimal && stow emacs-ide
+.\winstow.ps1 -D emacs-ide -S emacs-minimal      # Windows, in one call
 ```
 
-PowerShell 7 also accepts `.\winstow.ps1 -D emacs-ide && .\winstow.ps1 emacs-minimal`.
-Windows PowerShell 5.1 has no `&&`, so use the single call above there. As with stow, winstow won't
-replace files or links it doesn't own. It reports `existing target is not
-owned by stow`: remove the file first, or use `--adopt` to move it into
-the package.
+**Unlink a module:** `stow -D <module>`, or `.\winstow.ps1 -D <module>` on Windows.
 
-**3. Emacs**
-
-```powershell
-winget install GNU.Emacs
-# add C:\Program Files\Emacs\emacs-<version>\bin to your user PATH
-.\winstow.ps1 emacs-ide
-```
-
-On Windows, `emacs-ide` works except for mail: mu/mu4e has no Windows
-build, so the config skips it. Tree-sitter grammars need a C compiler, and
-C/C++ support needs LLVM. See the Windows section of the
-[emacs-ide README](https://github.com/jclosure/vscode-flavored-emacs-2026#windows).
-
-**4. PowerShell that feels like Oh My Zsh**
-
-The `powershell` module sets up an Oh My Posh `robbyrussell` prompt with a
-Windows logo and the hostname, plain `ls` (only directories colored), git
-completion, Emacs keys, and fzf history search on Ctrl-r. Full details are in
-[`powershell/README.md`](powershell/README.md).
-
-```powershell
-winget install JanDeDobbeleer.OhMyPosh
-winget install junegunn.fzf
-Install-Module posh-git, PSFzf -Scope CurrentUser
-
-.\winstow.ps1 powershell
-Set-Content $PROFILE '. "$HOME\.config\powershell\profile.ps1"'   # loader; $PROFILE is under OneDrive, which doesn't sync symlinks
-```
-
-Run these in **PowerShell 7**. `$PROFILE` and the module folders differ per
-shell, so if you also use Windows PowerShell 5.1, repeat the `Install-Module`
-and `Set-Content` lines there (5.1 also needs a newer PSReadLine; see the
-module README).
-In Windows Terminal, make **PowerShell** (7) the default profile, and set the
-font to a Nerd Font by its v3 short name, for example `JetBrainsMono NFM`.
-Otherwise the prompt's Windows logo shows as a box. Do the same for VS Code's
-terminal, which has its own font setting: `"terminal.integrated.fontFamily": "JetBrainsMono NFM"`.
-
-**Which modules apply on Windows:** `emacs-*` and `powershell`. `zsh`,
-`cmux`, `ghostty`, `terminator` and `agent-secrets` (macOS Keychain) are for mac/linux
-only. The agent modules haven't been tried on Windows.
+**winstow** is a port of GNU Stow 2.4.1 to PowerShell. It takes the same
+options (`-n -v` for a dry run, `--adopt`, `.stow-local-ignore`), creates the
+same relative symlinks, and checks for conflicts before changing anything.
+If it reports `existing target is not owned by stow`, delete that file, or
+use `--adopt` to move it into the module.
