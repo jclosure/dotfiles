@@ -22,29 +22,190 @@ workspace keeps the name `shepherd` only because that's the name we're used to.
 
 ---
 
-## Quick start
+## Setting up a new machine
 
-| | macOS | Linux | Windows |
+Every OS goes through the same five stages. Only the commands differ:
+
+1. **Install the prerequisites:** git, Python 3.8+, a linking tool and herdr,
+   with `~/.local/bin` on `PATH`.
+2. **Clone the dotfiles and link herd** into `~/.local/bin`.
+3. **Run `herd setup`.** It writes the herdr config, installs Handy and opens
+   it.
+4. **Finish Handy's first-run setup, then run `herd setup` again.** Pick the
+   model, grant permissions, and let herd apply the shared voice settings.
+5. **Check it:** `herd doctor`, the voice shortcut, and that Handy starts at
+   login.
+
+`herd setup` is safe to re-run at any time. If a step fails, fix it and run
+it again.
+
+| | Windows | macOS | Linux |
 |---|---|---|---|
-| 1. Get the dotfiles | `git clone --recurse-submodules git@github.com:jclosure/dotfiles.git ~/dotfiles` | same | same, in PowerShell |
-| 2. Link herd | `cd ~/dotfiles && stow herd` | `cd ~/dotfiles && stow herd` | `cd ~\dotfiles; .\winstow.ps1 herd` |
-| 3. Configure | `herd setup` | `herd setup` | `herd setup` |
-| 4. Voice, first time | Finish Handy's first-run setup, then `herd setup` again | same | same |
-| 5. Use it | `herd` | `herd` | `herd` |
+| Shell to run these in | PowerShell 7 (`pwsh`) | zsh | bash or zsh |
+| Linking tool | `winstow.ps1` (in this repo) | GNU Stow (`brew`) | GNU Stow (`apt`/`dnf`) |
+| herdr's default shell | `pwsh.exe` (from `herdr/windows.toml`), so PowerShell 7 is required | your login shell | your login shell |
+| How Handy is installed | `winget install cjpais.Handy` | `brew install --cask handy` | `.deb`/`.rpm` from Handy's GitHub releases, with `sudo` |
+| Voice shortcut handled by | Handy | Handy | Handy (X11) or the desktop (Wayland) |
+| Extra permissions | Developer Mode, for symlinks | Microphone and **Accessibility** for Handy | `sudo` for the Handy package |
 
-That's it. Details, prerequisites and per-OS notes follow.
+### Windows
 
-### Prerequisites
+**1. Prerequisites.** In PowerShell:
 
-| | macOS | Linux | Windows |
-|---|---|---|---|
-| herdr | [herdr.dev](https://herdr.dev) (lands in `~/.local/bin`) | same | same (installs to `%LOCALAPPDATA%\Programs\herdr`) |
-| Python 3.8+ | Homebrew `python` | system `python3` | [python.org](https://www.python.org) or `winget install Python.Python.3.14` |
-| Linking tool | `brew install stow` | `sudo apt install stow` | `winstow.ps1` in this repo; turn on **Developer Mode** (Settings → System → For developers) so it can create symlinks |
-| `~/.local/bin` on `PATH` | yes | yes (`~/.profile` adds it) | yes (`%USERPROFILE%\.local\bin`) |
-| Package manager for Handy | Homebrew | apt or dnf; uses `sudo` | winget |
+```powershell
+winget install --id Git.Git -e
+winget install --id Python.Python.3.14 -e
+winget install --id Microsoft.PowerShell -e
+irm https://herdr.dev/install.ps1 | iex
+```
 
-On Windows, `herd` is available in PowerShell, cmd and Git Bash.
+- Turn on **Developer Mode** (Settings → System → For developers) so
+  `winstow.ps1` can create symlinks. Without it, link from an elevated shell.
+- Allow local scripts such as `winstow.ps1` to run:
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+- Put `~/.local/bin` on your **user** `PATH`. The herdr server must find
+  `herd` there, or F1 does nothing, so adding it in your PowerShell profile
+  isn't enough:
+
+  ```powershell
+  $p = [Environment]::GetEnvironmentVariable('Path', 'User')
+  if ($p -notlike "*$HOME\.local\bin*") {
+      [Environment]::SetEnvironmentVariable('Path', "$HOME\.local\bin;$p", 'User')
+  }
+  ```
+
+- Close every terminal and open a new PowerShell 7 window so the new `PATH`
+  takes effect.
+
+**2. Clone and link:**
+
+```powershell
+git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~\dotfiles
+cd ~\dotfiles
+.\winstow.ps1 herd
+```
+
+(Use `git@github.com:jclosure/dotfiles.git` instead if this machine has an
+SSH key on GitHub and you'll push from it.)
+
+**3. First `herd setup`.** This writes `%APPDATA%\herdr\config.toml`, installs
+Handy with winget, and opens it.
+
+**4. Handy's first run, then `herd setup` again.** In Handy, choose the
+**Canary 180M Flash (Q8)** model, let it download, and allow microphone
+access. Then run `herd setup` again. It prints each setting it changes and
+restarts Handy.
+
+**5. Check it:**
+
+- `herd doctor` shows herdr, an up-to-date config, Handy as installed, and
+  the shortcut as `ctrl+shift+space`.
+- Click outside Windows Terminal, press **Ctrl+Shift+Space**, speak, and
+  press it again. If Windows Terminal's new-tab menu opens instead, Handy
+  isn't running.
+- Handy starts at login if `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Handy`
+  shows `...\Handy\handy.exe`. Handy writes that value every time it starts
+  with `autostart_enabled` on.
+
+### macOS
+
+**1. Prerequisites.** Install [Homebrew](https://brew.sh), then:
+
+```sh
+brew install git python stow
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
+Make sure `~/.local/bin` is on `PATH` in `~/.zshrc`. The herdr installer
+puts herdr there:
+
+```sh
+grep -q '.local/bin' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+exec zsh
+```
+
+**2. Clone and link:**
+
+```sh
+git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~/dotfiles
+cd ~/dotfiles && stow herd
+```
+
+**3. First `herd setup`.** This writes `~/.config/herdr/config.toml`, runs
+`brew install --cask handy`, and opens Handy.
+
+**4. Handy's first run, then `herd setup` again.** Choose **Canary 180M Flash
+(Q8)**. When macOS asks, allow **Microphone**. Also go to System Settings →
+Privacy & Security → **Accessibility** and turn on Handy, so it can type.
+Then run `herd setup` again.
+
+**5. Check it:**
+
+- `herd doctor`, then try the shortcut, as on Windows. The shortcut is
+  Ctrl+Shift+Space here too, not Cmd.
+- Handy should appear under System Settings → General → **Login Items** after
+  it has started once with `autostart_enabled` on. If it doesn't, add it there
+  by hand. Autostart through the setting hasn't been confirmed on macOS yet.
+
+The upstream Shepherd (`brew` + herdr plugin, `~/.shepherd`) can run
+alongside herd on the Mac; herd doesn't touch it.
+
+### Linux
+
+**1. Prerequisites.** For Debian, Ubuntu or Pop!_OS (on Fedora, use `dnf`):
+
+```sh
+sudo apt install git python3 stow curl
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
+`~/.local/bin` is on `PATH` through the default `~/.profile` once the
+directory exists. Log out and back in after the first install, or run
+`export PATH="$HOME/.local/bin:$PATH"` in the current shell. You need `sudo`,
+because `herd setup` installs the Handy package.
+
+**2. Clone and link:**
+
+```sh
+git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~/dotfiles
+cd ~/dotfiles && stow herd
+```
+
+**3. First `herd setup`.** This writes `~/.config/herdr/config.toml`,
+downloads the newest Handy `.deb`/`.rpm` from GitHub, and installs it with
+`sudo`. It also installs the text-input helper: `wtype` on Wayland, `xdotool`
+on X11. On **Wayland**, it binds Ctrl+Shift+Space to
+`handy --toggle-transcription`: automatically on COSMIC, while on GNOME or KDE
+it prints the shortcut to add by hand. herd reads the desktop session from
+systemd, so this all works over SSH too, with Handy appearing on the desktop.
+
+**4. Handy's first run, then `herd setup` again.** At the machine's desktop,
+choose **Canary 180M Flash (Q8)** and allow the microphone. Then run
+`herd setup` again.
+
+**5. Check it:**
+
+- `herd doctor` also shows the session (`wayland / COSMIC`) and whether the
+  Wayland shortcut is set.
+- On Wayland, tap the shortcut to start and tap it again to stop. Holding it
+  doesn't work there.
+- Handy starts at login if `~/.config/autostart/` contains a Handy entry
+  after Handy has run once with `autostart_enabled` on.
+
+### Keeping machines in sync
+
+After you commit a change to this repo, bring every machine up to date:
+
+```sh
+herd update      # pull, herd setup, herdr update, upgrade Handy
+# or, for config only:
+git -C ~/dotfiles pull --ff-only && herd setup
+```
+
+If two machines behave differently, compare their Handy `settings_store.json`
+files (paths are under [Voice](#what-herd-setup-does-for-voice)). Apart from
+history and versions, they should differ only in the
+[choices that stay per machine](#choices-that-stay-per-machine).
 
 ---
 
@@ -278,7 +439,7 @@ first; `herd update` stops rather than merging for you.
 |---|---|
 | `herd setup` ran but herdr looks the same | Read the `herdr config:` lines it printed. `server reload applied` means the config is live; setup doesn't open the dashboard, so press F1 or run `herd`. `reload failed: …` or `no running server reachable` means the config applies the next time herdr starts. |
 | F1 does nothing | Run `herd doctor`. The herdr **server** has to find `herd` on its `PATH`, so check that `~/.local/bin` is on it. |
-| `herd: needs Python 3.8+ on PATH` | Install Python 3 (see [Prerequisites](#prerequisites)). |
+| `herd: needs Python 3.8+ on PATH` | Install Python 3 (see [Setting up a new machine](#setting-up-a-new-machine)). |
 | Voice shortcut does nothing | Run `herd doctor`. Finish Handy's first-run setup, then `herd setup`. macOS: grant Microphone and Accessibility to Handy. Linux on Wayland: check that `wayland shortcut` reports it's set; on desktops other than COSMIC, add the shortcut yourself. |
 | Windows: Ctrl+Shift+Space opens Windows Terminal's new-tab menu | Handy isn't running, so the key reaches the terminal. Start `%LOCALAPPDATA%\Handy\handy.exe`, and run `herd setup` so it starts at login. |
 | Text doesn't appear on Linux | Wayland needs `wtype` and X11 needs `xdotool`; `herd setup` installs them. On GNOME's Wayland, `wtype` doesn't work, so use `ydotool` (see Handy's README). |
