@@ -160,17 +160,46 @@ low-contrast foreground/background pairs more aggressively:
 - `shr-color-visible-distance-min`: `10` (default: `5`)
 - `shr-color-visible-luminance-min`: `60` (default: `40`)
 
-This is contrast correction, not a fixed Catppuccin palette or a guaranteed
-WCAG contrast ratio. Sender backgrounds may still be light. HTML structure,
-links, and image behavior are unchanged; colors baked into images cannot be
-overridden. Mail envelope headers (From/Subject/etc.) remain theme-controlled.
+HTML-supplied backgrounds are remapped to a curated, muted Catppuccin-Mocha
+palette: neutral white/gray becomes a dark surface, while colored backgrounds
+keep a rose, peach, green, teal, blue, mauve, or pink hue family. This avoids
+the usual gray-on-white mail styling without flattening visual distinctions.
+HTML structure, links, and image behavior are unchanged; colors baked into
+images cannot be overridden. Mail envelope headers (From/Subject/etc.) remain
+theme-controlled.
 
 Restart Emacs after updating the config, then reopen the message.
 The `my/mu4e-readable-html-colors` advice around `shr-insert-document` binds
 these settings only for a render originating in `mu4e-view-mode`, including
 SHR's temporary table-cell buffers. EWW and other SHR consumers are unaffected.
-This replaces the earlier all-colors-disabled approach, which flattened
-useful visual distinctions. Re-evaluating the new block removes the old advice.
+The background palette is applied through the same dynamic render scope, so it
+also covers table cells. On terminal Emacs, the config removes SHR's `:extend t`
+from background faces; otherwise the terminal paints colored lines beyond the
+actual mail block. Re-evaluating the new block removes old advice.
+
+### Solid color panels in the terminal
+
+SHR paints a background only under the text it draws, so in a terminal a
+colored section looks like a stack of lines of different lengths.  After SHR
+renders a mail part, `my/mm-shr-clean-layout` (advice around `mm-shr`) squares
+each colored section off into a panel:
+
+- table-cell padding, which SHR draws as one stretched `:align-to` character,
+  becomes real spaces in the cell's color, so cells are solid rectangles
+- every line of a section is padded with its color to one shared right edge
+- gaps between runs of one color take that color; blank lines between lines of
+  one panel are filled, blank lines between panels are left empty
+- the email's color goes in front of named faces that carry a background
+  (`shr-h5`/`shr-h6` inherit `default`, which otherwise shows the theme
+  background behind every word of a heading)
+- contrast correction keeps the palette background and adjusts only the text
+  (`shr-color-visible` with a fixed background), so panels stay dark and theme
+  link colors stay readable on them
+- in terminal Emacs, SHR's copy of each table's images after the table is
+  dropped; the alt text already shows inside the cell
+
+It also fills mail to the window width (at most `my/mail-html-max-width`, 100
+columns) and drops `aria-hidden` content such as hidden preheader text.
 
 Examples and background:
 
