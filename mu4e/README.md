@@ -150,6 +150,20 @@ The Emacs config in `emacs-ide` does three things for this setup:
    URL is not visible.
 3. If the forwarded opener is unavailable, it falls back to SSH-back/OSC52.
 
+## HTML email readability
+
+The `emacs-ide` config disables sender-specified HTML colors while SHR renders
+mu4e views, including table cells. Mail text uses the active Emacs theme
+(normally Catppuccin) instead of potentially low-contrast HTML colors.
+HTML structure, links, and image behavior are unchanged; colors baked into
+images cannot be overridden. EWW and other SHR consumers are unaffected.
+
+Restart Emacs after updating the config, then reopen the message.
+The `my/mu4e-use-theme-colors` advice around `shr-insert-document` binds
+`shr-use-colors` to nil only for a render originating in `mu4e-view-mode`.
+A mode-hook buffer-local setting alone is insufficient because SHR renders
+table cells in temporary buffers.
+
 ## Troubleshooting
 
 ### Windows usage without `--remote`
