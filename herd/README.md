@@ -77,7 +77,7 @@ irm https://herdr.dev/install.ps1 | iex
 - Close every terminal and open a new PowerShell 7 window so the new `PATH`
   takes effect.
 
-**2. Clone and link:**
+**2. Clone and link.** Skip the `git clone` line if you already have `~/dotfiles`:
 
 ```powershell
 git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~\dotfiles
@@ -124,7 +124,7 @@ grep -q '.local/bin' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> 
 exec zsh
 ```
 
-**2. Clone and link:**
+**2. Clone and link.** Skip the `git clone` line if you already have `~/dotfiles`:
 
 ```sh
 git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~/dotfiles
@@ -164,7 +164,7 @@ directory exists. Log out and back in after the first install, or run
 `export PATH="$HOME/.local/bin:$PATH"` in the current shell. You need `sudo`,
 because `herd setup` installs the Handy package.
 
-**2. Clone and link:**
+**2. Clone and link.** Skip the `git clone` line if you already have `~/dotfiles`:
 
 ```sh
 git clone --recurse-submodules https://github.com/jclosure/dotfiles.git ~/dotfiles
