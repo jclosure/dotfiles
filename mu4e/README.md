@@ -152,17 +152,38 @@ The Emacs config in `emacs-ide` does three things for this setup:
 
 ## HTML email readability
 
-The `emacs-ide` config disables sender-specified HTML colors while SHR renders
-mu4e views, including table cells. Mail text uses the active Emacs theme
-(normally Catppuccin) instead of potentially low-contrast HTML colors.
-HTML structure, links, and image behavior are unchanged; colors baked into
-images cannot be overridden. EWW and other SHR consumers are unaffected.
+The `emacs-ide` config preserves HTML colors so headings, body text, and
+colored sections remain distinguishable, while asking SHR to correct
+low-contrast foreground/background pairs more aggressively:
+
+- `shr-use-colors`: `t`
+- `shr-color-visible-distance-min`: `10` (default: `5`)
+- `shr-color-visible-luminance-min`: `60` (default: `40`)
+
+This is contrast correction, not a fixed Catppuccin palette or a guaranteed
+WCAG contrast ratio. Sender backgrounds may still be light. HTML structure,
+links, and image behavior are unchanged; colors baked into images cannot be
+overridden. Mail envelope headers (From/Subject/etc.) remain theme-controlled.
 
 Restart Emacs after updating the config, then reopen the message.
-The `my/mu4e-use-theme-colors` advice around `shr-insert-document` binds
-`shr-use-colors` to nil only for a render originating in `mu4e-view-mode`.
-A mode-hook buffer-local setting alone is insufficient because SHR renders
-table cells in temporary buffers.
+The `my/mu4e-readable-html-colors` advice around `shr-insert-document` binds
+these settings only for a render originating in `mu4e-view-mode`, including
+SHR's temporary table-cell buffers. EWW and other SHR consumers are unaffected.
+This replaces the earlier all-colors-disabled approach, which flattened
+useful visual distinctions. Re-evaluating the new block removes the old advice.
+
+Examples and background:
+
+- [Gnus FAQ: HTML mail contrast](https://www.gnu.org/software/emacs/manual/html_node/gnus/FAQ-4_002d16.html)
+- [Tassilo Horn's 10/60 configuration](https://yhetil.org/emacs-user/877g3cfnwp.fsf@gnu.org/)
+- [shrface: Org-style HTML headings and links, with visual examples](https://github.com/chenyanming/shrface)
+  (optional; not installed by this change)
+
+Regression tests (no live mailbox or mu4e installation required):
+
+```sh
+emacs --batch -Q -l mu4e/tests/html-colors-test.el -f ert-run-tests-batch-and-exit
+```
 
 ## Troubleshooting
 
