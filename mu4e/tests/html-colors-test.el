@@ -200,3 +200,23 @@
       (goto-char 1)
       (should (equal (buffer-substring 1 (line-end-position))
                      "see https://example.org   ")))))
+
+(ert-deftest mail-gap-fills-left-edge-and-falls-back-to-page ()
+  (with-temp-buffer
+    (let ((n '(:background "#313244")) (teal '(:background "#2d4144"))
+          (green '(:background "#304338")))
+      ;; Above: page gray.  Below: a teal row with a gray name label.
+      ;; Columns 0-1 differ, so they take the first shared color to the right.
+      (insert (propertize "    " 'face n) "\n"
+              "\n"
+              (propertize "  " 'face teal) (propertize "  " 'face n) "\n")
+      (my/mail-paint-gap 6 1 7 4 "#313244")
+      (should (equal (my/mail-background-at 6) "#313244"))
+      (should (equal (my/mail-background-at 9) "#313244"))
+      ;; Two rows that share no color at all: the gap takes the page color.
+      (erase-buffer)
+      (insert (propertize "    " 'face teal) "\n" "\n"
+              (propertize "    " 'face green) "\n")
+      (my/mail-paint-gap 6 1 7 4 "#313244")
+      (should (equal (buffer-substring-no-properties 6 10) "    "))
+      (should (equal (my/mail-background-at 6) "#313244")))))
