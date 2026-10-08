@@ -220,3 +220,18 @@
       (my/mail-paint-gap 6 1 7 4 "#313244")
       (should (equal (buffer-substring-no-properties 6 10) "    "))
       (should (equal (my/mail-background-at 6) "#313244")))))
+
+(ert-deftest mail-table-content-outside-cells-is-kept ()
+  ;; Reddit digests put each post in a table placed directly in a <tr>.
+  ;; shr renders that (and re-inserts the table's images) in one pass
+  ;; after the table; in terminal mail only the image copies are dropped.
+  (let ((html "<table><tr><td><img alt='Logo' src='x.png'></td></tr><tr><table><tr><td>Post text</td></tr></table></tr></table>")
+        (my/mail-html-rendering t)
+        (shr-use-fonts nil))
+    (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _) nil)))
+      (with-temp-buffer
+        (insert html)
+        (shr-render-region (point-min) (point-max))
+        (let ((text (buffer-string)))
+          (should (string-search "Post text" text))
+          (should (= 1 (how-many "Logo" (point-min) (point-max)))))))))
