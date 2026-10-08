@@ -156,3 +156,47 @@
     (insert "   \n" (propertize "text" 'face '(:background "#313244")) "\n")
     (my/mail-paint-gap 1 nil 5 4)
     (should (equal (buffer-substring-no-properties 1 2) "\n"))))
+
+(ert-deftest mail-thin-wrapper-stripes-take-surrounding-color ()
+  ;; Nested #fff wrapper tables show through shr's per-table indent as
+  ;; 1-2 column stripes inside a colored section; wider gutters stay.
+  (with-temp-buffer
+    (let ((b '(:background "#4b3b2f")) (n '(:background "#313244")))
+      (insert (propertize "  " 'face b) (propertize "  " 'face n)
+              (propertize " " 'face b) (propertize "  " 'face n)
+              (propertize "text" 'face b) (propertize "   " 'face n)
+              (propertize "more" 'face b))
+      (my/mail-close-slivers (point-min) (point-max))
+      (should (equal (my/mail-background-at 3) "#4b3b2f"))
+      (should (equal (my/mail-background-at 6) "#4b3b2f"))
+      (should (equal (my/mail-background-at 12) "#313244")))))
+
+(ert-deftest mail-panel-left-edge-is-evened-out ()
+  (with-temp-buffer
+    (let ((b '(:background "#4b3b2f")))
+      (insert "     " (propertize "logo" 'face b) "\n"
+              "  " (propertize "   text" 'face b) "\n")
+      (let ((lines (vector (vector (copy-marker 1) "#4b3b2f" nil)
+                           (vector (copy-marker 11) "#4b3b2f" nil))))
+        (my/mail-align-panel-left-edges lines))
+      (should (equal (my/mail-background-at 3) "#4b3b2f"))
+      (should-not (my/mail-background-at 2)))))
+
+(ert-deftest mail-suspicious-link-warning-is-one-column ()
+  (with-temp-buffer
+    (insert "link" (propertize "⚠️" 'help-echo "suspicious") " more")
+    (my/mail-text-style-warnings (point-min) (point-max))
+    (should (equal (buffer-string) "link⚠ more"))
+    (should (get-text-property 5 'help-echo))))
+
+(ert-deftest mail-url-numbers-take-panel-padding ()
+  (with-temp-buffer
+    (insert "see https://example.org      \nnext\n")
+    (let ((ov (make-overlay 5 24)))
+      (overlay-put ov 'mu4e-overlay t)
+      (overlay-put ov 'after-string "​[1]")
+      (my/mu4e-make-room-for-url-numbers)
+      (should (equal (overlay-get ov 'after-string) "[1]"))
+      (goto-char 1)
+      (should (equal (buffer-substring 1 (line-end-position))
+                     "see https://example.org   ")))))

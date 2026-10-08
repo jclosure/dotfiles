@@ -192,6 +192,18 @@ each colored section off into a panel:
   column, the color the lines above and below share, continuing the enclosing
   panel's color where they differ (so the email's page background shows
   instead of a dark theme-colored stripe)
+- blank stripes at most two columns wide with one color on both sides take that
+  color: shr indents each nested table a column or two, which exposes the
+  email's full-width wrapper tables (often `#fff`) as thin vertical stripes
+  through a section that a browser would draw flush
+- a panel's left edge is evened out: a line whose panel color starts up to three
+  columns later than the rest of the panel (a notch at its top-left corner) is
+  filled back to the edge
+- mu4e's link numbers (`[1]` after a URL in the text, added after shr lays out
+  the mail) take their width out of the line's trailing padding, so the line
+  still ends at the panel's edge
+- shr's suspicious-link warning (`⚠` plus the emoji selector U+FE0F) is reduced
+  to the plain one-column `⚠`; terminals draw the emoji form two columns wide
 - the email's color goes in front of named faces that carry a background
   (`shr-h5`/`shr-h6` inherit `default`, which otherwise shows the theme
   background behind every word of a heading)
