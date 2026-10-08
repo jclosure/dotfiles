@@ -188,7 +188,10 @@ each colored section off into a panel:
   becomes real spaces in the cell's color, so cells are solid rectangles
 - every line of a section is padded with its color to one shared right edge
 - gaps between runs of one color take that color; blank lines between lines of
-  one panel are filled, blank lines between panels are left empty
+  one panel are filled, and a blank line between two panels takes, column by
+  column, the color the lines above and below share, continuing the enclosing
+  panel's color where they differ (so the email's page background shows
+  instead of a dark theme-colored stripe)
 - the email's color goes in front of named faces that carry a background
   (`shr-h5`/`shr-h6` inherit `default`, which otherwise shows the theme
   background behind every word of a heading)

@@ -129,3 +129,30 @@
       (my/mail-pin-backgrounds (point-min) (point-max))
       (should (equal (car (get-text-property 1 'face))
                      '(:background "#313244"))))))
+
+(ert-deftest mail-gap-between-panels-continues-enclosing-color ()
+  ;; A blank line between a section and a button row inside an outer
+  ;; wrapper: emptying it showed the theme background as a dark stripe.
+  (with-temp-buffer
+    (let ((outer '(:background "#313244"))
+          (section '(:background "#4b3b2f"))
+          (button '(:background "#4a303b")))
+      (insert (propertize "  " 'face outer) (propertize "  text" 'face section) "\n"
+              "\n"
+              (propertize "  " 'face outer) (propertize " " 'face section)
+              (propertize "go   " 'face button) "\n")
+      (my/mail-paint-gap 10 1 11 8)
+      (goto-char 10)
+      (should (equal (buffer-substring-no-properties 10 (line-end-position))
+                     "        "))
+      ;; Shared columns keep their color; where the section and the
+      ;; button differ, the section (the enclosing panel) continues.
+      (should (equal (my/mail-background-at 10) "#313244"))
+      (should (equal (my/mail-background-at 12) "#4b3b2f"))
+      (should (equal (my/mail-background-at 17) "#4b3b2f")))))
+
+(ert-deftest mail-gap-without-both-neighbors-is-emptied ()
+  (with-temp-buffer
+    (insert "   \n" (propertize "text" 'face '(:background "#313244")) "\n")
+    (my/mail-paint-gap 1 nil 5 4)
+    (should (equal (buffer-substring-no-properties 1 2) "\n"))))
