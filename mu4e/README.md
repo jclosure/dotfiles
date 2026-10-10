@@ -278,6 +278,21 @@ each message once (other people's messages in the same thread are left out);
 
 Tests: `emacs --batch -Q -l mu4e/tests/unsubscribe-test.el -f ert-run-tests-batch-and-exit`
 
+## Open in webmail
+
+A message view shows a `Web: Open in Gmail` line with the headers; click it,
+press `RET` on it, or press `W` (headers list or view) to open the message in
+the provider's web UI through `browse-url` (forwarded to the client's browser
+over SSH). It is listed by `g` like any link in the mail.
+
+Providers are entries in `my/mu4e-webmail-providers` (name, a predicate for
+"this message is ours", a URL builder); the line only appears when one matches.
+Gmail is the only one: a message counts as Gmail mail when it is in a
+`/[Gmail]/` folder or the account's folders or address are Gmail's. Gmail has no
+URL for a Message-ID, so the link is a search for `rfc822msgid:<id>`, which
+lists exactly that message.
+
+
 ## Troubleshooting
 
 ### Windows usage without `--remote`

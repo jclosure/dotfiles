@@ -139,3 +139,38 @@
     (should (string-search "\ufe0f" (plist-get (my/mu4e-strip-emoji-selector
                                                  (list :subject "\u26a0\ufe0f"))
                                                 :subject)))))
+
+;; The webmail link block.  mu4e isn't loaded here: declare its folder variable.
+(defvar mu4e-trash-folder nil)
+(let ((init (expand-file-name "../../emacs-ide/.emacs.d/init.el"
+                              (file-name-directory load-file-name))))
+  (with-temp-buffer
+    (insert-file-contents init)
+    (goto-char (point-min))
+    (search-forward ";;; --- Open the message in its webmail")
+    (let ((start (match-beginning 0)))
+      (search-forward "(with-eval-after-load 'mu4e\n  (setf (alist-get :webmail")
+      (eval-region start (match-beginning 0)))))
+
+(ert-deftest webmail-gmail-link-finds-message-by-id ()
+  (let ((user-mail-address "me@gmail.com")
+        (mu4e-trash-folder "/[Gmail]/Trash"))
+    (cl-letf (((symbol-function 'mu4e-message-field)
+               (lambda (msg field) (plist-get msg field))))
+      (let* ((msg '(:message-id "abc+1@mail.example.com" :maildir "/Inbox"))
+             (web (my/mu4e-webmail msg))
+             (field (my/mu4e-webmail-field msg)))
+        (should (equal (car web) "Gmail"))
+        (should (equal (cdr web)
+                       (concat "https://mail.google.com/mail/?authuser=me%40gmail.com"
+                               "#search/rfc822msgid%3Aabc%2B1%40mail.example.com")))
+        (should (equal field "Open in Gmail"))
+        ;; Clickable like a link in the mail (mouse-1 handler, `g').
+        (should (equal (get-text-property 0 'shr-url field) (cdr web))))
+      ;; Not Gmail: no provider, so no line in the view.
+      (let ((user-mail-address "me@fastmail.example")
+            (mu4e-trash-folder "/Trash"))
+        (should-not (my/mu4e-webmail '(:message-id "x@y" :maildir "/Inbox")))
+        (should (equal (my/mu4e-webmail-field '(:message-id "x@y" :maildir "/Inbox")) ""))
+        ;; ...unless the message itself is in a Gmail folder.
+        (should (my/mu4e-webmail '(:message-id "x@y" :maildir "/[Gmail]/Sent Mail")))))))
