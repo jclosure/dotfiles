@@ -204,6 +204,12 @@ each colored section off into a panel:
   still ends at the panel's edge
 - shr's suspicious-link warning (`⚠` plus the emoji selector U+FE0F) is reduced
   to the plain one-column `⚠`; terminals draw the emoji form two columns wide
+- an image without alt text shows as `[image]` instead of shr's bare `*` (a
+  linked one stays a link), and tracking pixels (1-2 px images a browser
+  doesn't show either) show as nothing
+- runs of blank lines collapse to one: fixed-height spacer cells and image rows
+  otherwise spread an image-heavy mail (Pinterest, product feeds) over pages of
+  empty lines; only whitespace-only lines are removed
 - the email's color goes in front of named faces that carry a background
   (`shr-h5`/`shr-h6` inherit `default`, which otherwise shows the theme
   background behind every word of a heading)

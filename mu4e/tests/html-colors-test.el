@@ -235,3 +235,25 @@
         (let ((text (buffer-string)))
           (should (string-search "Post text" text))
           (should (= 1 (how-many "Logo" (point-min) (point-max)))))))))
+
+(ert-deftest mail-unlabeled-images-and-tracking-pixels ()
+  (let ((html "<p>A <img src='a.png' width='148' height='74'> B <img src='t.gif' width='1' height='1' alt=''> C <img src='s.png' style='max-width:600px;width:1px;height:1px'> D <img src='l.png' alt='Logo'></p>")
+        (my/mail-html-rendering t)
+        (shr-use-fonts nil))
+    (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _) nil)))
+      (with-temp-buffer
+        (insert html)
+        (shr-render-region (point-min) (point-max))
+        (let ((text (buffer-string)))
+          ;; shr puts wide images on their own line.
+          (should (string-match-p "A[ \n]+\\[image\\][ \n]+B" text))
+          ;; 1x1 pixels, in attributes or (not max-width) in style, vanish.
+          (should (string-match-p "B +C +D" text))
+          (should (string-search "Logo" text))
+          (should-not (string-search "*" text)))))))
+
+(ert-deftest mail-blank-line-runs-collapse-to-one ()
+  (with-temp-buffer
+    (insert "one\n\n   \n\t\ntwo\n\nthree\n  \n")
+    (my/mail-collapse-blank-lines (point-min) (point-max))
+    (should (equal (buffer-string) "one\n\ntwo\n\nthree\n  \n"))))
