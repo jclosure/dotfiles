@@ -132,7 +132,9 @@ stow emacs-ide
 [herd → Linux](herd/README.md#linux), steps 1–5.
 
 **7. Optional: mail.** If this machine reads mail with mu4e, see
-[mu4e → Modes](mu4e/README.md#modes) and link it with `stow mu4e`.
+[mu4e → Modes](mu4e/README.md#modes) and link it with `stow mu4e`; on a
+mail host, also `stow mbsync` (see [mbsync](mbsync/README.md) for the password
+file).
 
 **8. Optional: agent tools.** Install each tool first, then link its module:
 
@@ -242,6 +244,7 @@ herd setup
 | `hermes` | Mac, Linux | Hermes settings | [README](hermes/README.md) |
 | `openclaw` | Mac, Linux | OpenClaw settings | [README](openclaw/README.md) |
 | `mu4e` | Mac, Linux, Windows | Mail-check launchers for mu4e | [README](mu4e/README.md) |
+| `mbsync` | Mac, Linux | Gmail IMAP sync config (`~/.mbsyncrc`) | [README](mbsync/README.md) |
 
 ---
 

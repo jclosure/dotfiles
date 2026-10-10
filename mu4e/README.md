@@ -252,11 +252,16 @@ index them) and uses the best method on offer:
 
 Mail in `/[Gmail]/Spam` is never unsubscribed, since that tells a spammer the
 address is live; `M-u` there goes straight to trashing it. The trash search
-leaves out `/[Gmail]/All Mail`, which mbsync no longer syncs: trashing a stale
-copy there would upload a duplicate to Trash and leave the real message.
+lists every copy (Inbox, label folders, `/[Gmail]/All Mail`) so all of them
+move to `/[Gmail]/Trash`.
 
-`M-s` on a message shows all mail from its sender (leaving out the stale
-`/[Gmail]/All Mail` copies and other people's messages in the same thread);
+Trash is recoverable: mu4e's trash moves mail to `/[Gmail]/Trash` without
+the Trashed flag, and Gmail purges it after 30 days. (With the flag, which is
+mu4e's default, Gmail deleted it for good at once.) `D` still deletes
+outright. See `../mbsync` for the sync side.
+
+`M-s` on a message shows all mail from its sender, archived mail included,
+each message once (other people's messages in the same thread are left out);
 `\` or `M-left` goes back to the previous search.
 
 Tests: `emacs --batch -Q -l mu4e/tests/unsubscribe-test.el -f ert-run-tests-batch-and-exit`

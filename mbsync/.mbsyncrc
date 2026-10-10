@@ -1,0 +1,41 @@
+# mbsync (isync) config for Gmail, shared by every mail host.
+# Install: cd ~/dotfiles && stow mbsync
+#
+# The password is never in this repo.  Each machine keeps its Gmail app
+# password in ~/.config/mbsync/gmail-password (mode 600, no newline).
+# See README.md in this module.
+
+IMAPAccount gmail
+Host imap.gmail.com
+User jclosure@gmail.com
+PassCmd "cat ~/.config/mbsync/gmail-password"
+AuthMechs LOGIN
+# SSLType works on isync 1.4 (Ubuntu) and 1.5 (Homebrew); 1.5 also calls it
+# TLSType.  No CertificateFile: use the system CA store on each OS.
+SSLType IMAPS
+
+IMAPStore gmail-remote
+Account gmail
+
+MaildirStore gmail-local
+Subfolders Verbatim
+Path ~/Mail/
+Inbox ~/Mail/Inbox
+
+Channel gmail
+Far :gmail-remote:
+Near :gmail-local:
+# Every folder, [Gmail]/All Mail included: archived mail lives only there,
+# and it is mu4e's refile (archive) folder.  (The old line here,
+# `Patterns * ![Gmail]/All Mail', meant to skip it, but patterns split on
+# spaces, so it excluded a nonexistent "[Gmail]/All" and synced everything.
+# To really skip All Mail, quote it: Patterns * "![Gmail]/All Mail".)
+Patterns *
+Create Near
+SyncState *
+# Actually remove messages flagged deleted, on both sides.  Without this a
+# message trashed on one machine stays on the others with only the Trashed
+# flag (mu4e shows it struck through), forever.  mu4e's trash doesn't set
+# that flag (see emacs-ide init.el, "Gmail-safe trash"), so this never
+# removes mail that is merely in Trash; Gmail purges that after 30 days.
+Expunge Both

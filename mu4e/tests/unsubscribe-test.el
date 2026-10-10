@@ -66,12 +66,12 @@
       (should (equal (nth 1 sent) "Remove me"))
       (should (string-prefix-p "bye" (nth 2 sent))))))
 
-(ert-deftest sender-query-skips-unsynced-and-excluded-maildirs ()
+(ert-deftest sender-query-excludes-only-given-maildirs ()
+  ;; All Mail is synced (archived mail lives only there): never left out.
   (should (equal (my/mu4e-sender-query "news@list.example")
-                 "from:news@list.example AND NOT maildir:\"/[Gmail]/All Mail\""))
+                 "from:news@list.example"))
   (should (equal (my/mu4e-sender-query "news@list.example" "/[Gmail]/Trash")
-                 (concat "from:news@list.example AND NOT maildir:\"/[Gmail]/Trash\""
-                         " AND NOT maildir:\"/[Gmail]/All Mail\""))))
+                 "from:news@list.example AND NOT maildir:\"/[Gmail]/Trash\"")))
 
 (ert-deftest sender-address-handles-both-contact-formats ()
   ;; mu4e 1.10 contacts are plists; older ones are (NAME . EMAIL).
