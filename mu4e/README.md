@@ -229,6 +229,28 @@ Regression tests (no live mailbox or mu4e installation required):
 emacs --batch -Q -l mu4e/tests/html-colors-test.el -f ert-run-tests-batch-and-exit
 ```
 
+## Unsubscribe and trash all
+
+`M-u` in the headers list or an open message unsubscribes from the sender's
+mailing list, then lists every synced message from that sender marked for
+trash and asks mu4e's usual "execute N marks?". Answer `n` to keep them; `U`
+unmarks. `C-u M-u` only unsubscribes.
+
+It reads the message's `List-Unsubscribe` headers from the file (mu does not
+index them) and uses the best method on offer:
+
+- one-click (`List-Unsubscribe-Post: List-Unsubscribe=One-Click`, RFC 8058):
+  a `curl` POST from the mail host, the same request Gmail's button sends
+- `mailto:`: sends the requested unsubscribe mail through smtpmail
+- a web link only: opens it in the browser through link forwarding
+
+Mail in `/[Gmail]/Spam` is never unsubscribed, since that tells a spammer the
+address is live; `M-u` there goes straight to trashing it. The trash search
+leaves out `/[Gmail]/All Mail`, which mbsync no longer syncs: trashing a stale
+copy there would upload a duplicate to Trash and leave the real message.
+
+Tests: `emacs --batch -Q -l mu4e/tests/unsubscribe-test.el -f ert-run-tests-batch-and-exit`
+
 ## Troubleshooting
 
 ### Windows usage without `--remote`
