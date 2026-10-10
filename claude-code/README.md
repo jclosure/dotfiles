@@ -1,6 +1,16 @@
 # Claude Code dotfiles module
 
-This GNU Stow module installs a helper that marks folders as trusted in Claude Code, so the "Do you trust the files in this folder?" prompt stops appearing.
+This GNU Stow module installs a helper that marks folders as trusted in Claude Code, so the "Do you trust the files in this folder?" prompt stops appearing. It also links `~/.claude/keybindings.json`, which adds zle-style keys to the prompt.
+
+## Keybindings
+
+`.claude/keybindings.json` adds to Claude Code's defaults (see the [keybindings docs](https://code.claude.com/docs/en/keybindings)):
+
+| Key | Action |
+| --- | --- |
+| `C-/` | Undo, as in zle and Emacs. `C-_` already works; most terminals send the same byte for both, but terminals using the kitty keyboard protocol send `C-/` separately. |
+
+Claude Code has no mark or region in the prompt, so zle's `C-Space` (set mark) and region commands such as `M-w` can't be bound.
 
 ## Install
 
