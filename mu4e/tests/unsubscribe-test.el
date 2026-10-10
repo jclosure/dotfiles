@@ -81,3 +81,32 @@
                    "a@x.example"))
     (should (equal (my/mu4e-sender-address '(("A" . "a@x.example")))
                    "a@x.example"))))
+
+;; The Gmail-safe trash block lives with the folder settings.
+(let ((init (expand-file-name "../../emacs-ide/.emacs.d/init.el"
+                              (file-name-directory load-file-name))))
+  (with-temp-buffer
+    (insert-file-contents init)
+    (goto-char (point-min))
+    (search-forward ";;; --- Gmail-safe trash")
+    (let ((start (match-beginning 0)))
+      (search-forward ";;; --- end Gmail-safe trash")
+      (eval-region start (match-beginning 0)))))
+
+(ert-deftest trash-mark-moves-without-trashed-flag ()
+  ;; Stand-in for mu4e-mark's table; loading the feature runs the override.
+  (defvar mu4e-marks)
+  (setq mu4e-marks
+        (list (list 'trash :char '("d" . "▼") :prompt "dtrash"
+                    :action (lambda (&rest _) 'old))))
+  (unless (featurep 'mu4e-mark) (provide 'mu4e-mark))
+  (let (moved)
+    (cl-letf (((symbol-function 'mu4e--server-move)
+               (lambda (&rest args) (setq moved args)))
+              ((symbol-function 'mu4e--mark-check-target) #'identity))
+      (funcall (plist-get (alist-get 'trash mu4e-marks) :action)
+               42 nil "/[Gmail]/Trash"))
+    ;; "-N" only: no "+T", which Gmail would turn into a permanent delete.
+    (should (equal moved '(42 "/[Gmail]/Trash" "-N")))
+    (should (equal (plist-get (alist-get 'trash mu4e-marks) :prompt) "dtrash"))
+    (should mu4e-trash-without-flag)))
