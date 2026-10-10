@@ -318,7 +318,7 @@ module sets it up the same way on every OS ([herd](herd/README.md)).
 |---|---|
 | **Alt+1…9** | Jump to agent N |
 | **Alt+Shift+↑ / ↓** (or **Ctrl+B** then **Alt+k / Alt+j**) | Previous / next agent |
-| **Shift+arrows** | Move between panes |
+| **Shift+←/↓/↑/→** | Move to the pane in that direction, windmove-style as in Emacs (replaces herdr's default **Ctrl+B** then `h/j/k/l`) |
 | **Ctrl+B** then `w` | Open the workspace list (↑↓ or Ctrl+P/N to move) |
 | **Ctrl+B** then **Shift+R** | Reload the config |
 
