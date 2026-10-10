@@ -11,6 +11,8 @@ to it, the link goes to the exact section in that module's README.
 - [Set up Linux](#set-up-linux)
 - [Set up Windows](#set-up-windows)
 - [Keep machines up to date](#keep-machines-up-to-date)
+- [Read email](#read-email)
+- [Control herdr](#control-herdr)
 - [What each module is](#what-each-module-is)
 - [Tips](#tips)
 
@@ -222,6 +224,123 @@ herd setup
 ```
 
 `herd update` does the same and also upgrades herdr and Handy.
+
+---
+
+## Read email
+
+Mail is Gmail, read in Emacs with mu4e, in a terminal.
+
+```text
+Gmail --IMAP, mbsync--> ~/Mail on a mail host --mu index--> mu4e in Emacs
+```
+
+A **mail host** is a Mac or Linux machine that keeps a full copy of the
+mailbox in `~/Mail`. Any machine, Windows included, can read from a mail host
+over SSH; links you open in mail then open in the browser on the machine
+you're sitting at.
+
+### Set up a mail host
+
+1. Install mu (with mu4e) and isync: `sudo apt install maildir-utils mu4e
+   isync` on Linux, `brew install mu isync` on a Mac. Emacs comes from step 5
+   of your OS's setup above.
+2. Put the Gmail app password in a private file (it never goes in this repo),
+   then link the sync config and the mail launchers:
+
+   ```sh
+   mkdir -p ~/.config/mbsync
+   ( umask 077; printf '%s' 'xxxx xxxx xxxx xxxx' > ~/.config/mbsync/gmail-password )
+   cd ~/dotfiles && stow mbsync mu4e
+   mbsync -l gmail          # logs in and lists folders, changes nothing
+   ```
+
+3. First sync and index: `mbsync -a && mu init --maildir ~/Mail
+   --my-address you@gmail.com && mu index`.
+
+Details: [mbsync](mbsync/README.md), [mu4e → Remote mail-host
+setup](mu4e/README.md#remote-mail-host-setup).
+
+### Open mail
+
+| From | Run |
+|---|---|
+| the mail host itself | `check-mail.sh` |
+| another Mac or Linux machine | `check-mail.sh --remote user@mailhost` |
+| Windows | `check-mail.ps1 --remote user@mailhost` |
+
+mu4e syncs with Gmail every 5 minutes (`U` on its main screen syncs now).
+Each mail host syncs on its own, so a change made on one shows up on another
+after both have synced: up to about 10 minutes.
+
+### Keys
+
+mu4e's own keys work as usual; these matter most, and the last five are ours.
+
+| Key | Does |
+|---|---|
+| `d` | Trash: moves to Gmail's Trash, which Gmail empties after 30 days |
+| `r` | Archive (refile to All Mail): leaves the Inbox, kept for good |
+| `D` | Delete. In Trash or Spam this deletes for good; elsewhere Gmail normally just archives it |
+| `x` / `U` | Execute the marks / unmark everything |
+| `g` | Pick a link in the message to open |
+| `M-s` | Show all mail from this message's sender |
+| `\` | Back to the previous search |
+| `M-u` | Unsubscribe from this sender's list, then mark all their mail for trash (`C-u M-u`: only unsubscribe). Never unsubscribes from Spam. |
+| `W` | Open this message in Gmail (also the `Web:` link in the headers) |
+
+HTML mail is drawn to read well in a dark terminal: colored sections become
+solid panels, invisible padding characters are removed, and images without
+text show as `[image]`. Nothing visible is dropped. See [mu4e → HTML email
+readability](mu4e/README.md#html-email-readability).
+
+---
+
+## Control herdr
+
+[herdr](https://herdr.dev) runs every coding agent in its own pane, inside
+workspaces and tabs, and keeps them running when you disconnect. The `herd`
+module sets it up the same way on every OS ([herd](herd/README.md)).
+
+**Start and come back**
+
+| Run or press | Does |
+|---|---|
+| `herd` | Starts herdr if needed and opens the `shepherd` dashboard, which lists every agent with its status |
+| **F1**, or **Ctrl+B** then `a` | Back to the dashboard from anywhere |
+| `herdr` | Attach to the running session without opening the dashboard |
+| `herd doctor` | Check the install and config when something looks wrong |
+| `herd setup` | Rewrite the config from this repo and reload herdr |
+
+**Move around**
+
+| Key | Does |
+|---|---|
+| **Alt+1…9** | Jump to agent N |
+| **Alt+Shift+↑ / ↓** (or **Ctrl+B** then **Alt+k / Alt+j**) | Previous / next agent |
+| **Shift+arrows** | Move between panes |
+| **Ctrl+B** then `w` | Open the workspace list (↑↓ or Ctrl+P/N to move) |
+| **Ctrl+B** then **Shift+R** | Reload the config |
+
+**Start work from the dashboard:** type a task and press Enter to start a new
+agent on it; `/who` and `/where` pick the kind of agent and its directory. Every
+line typed there that isn't a command starts a real agent, so to restart the
+dashboard press Ctrl+C in it and run `herd dash`, rather than sending it text.
+The full key list is in [herd → Using the dashboard](herd/README.md#using-the-dashboard).
+
+**From the command line or a script**, `herdr` controls the running session:
+
+```sh
+herdr workspace list              # workspaces
+herdr agent list                  # agents and their state
+herdr agent read <id>             # an agent's recent output
+herdr agent prompt <id> "..."     # give an agent a prompt
+herdr agent wait <id> --until done  # wait for a state (repeat --until)
+herdr pane read <id>              # any pane's output
+herdr server reload-config        # what herd setup does after writing config
+```
+
+Every group (`workspace`, `tab`, `pane`, `agent`) has `--help`.
 
 ---
 
