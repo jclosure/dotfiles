@@ -255,6 +255,10 @@ address is live; `M-u` there goes straight to trashing it. The trash search
 leaves out `/[Gmail]/All Mail`, which mbsync no longer syncs: trashing a stale
 copy there would upload a duplicate to Trash and leave the real message.
 
+`M-s` on a message shows all mail from its sender (leaving out the stale
+`/[Gmail]/All Mail` copies and other people's messages in the same thread);
+`\` or `M-left` goes back to the previous search.
+
 Tests: `emacs --batch -Q -l mu4e/tests/unsubscribe-test.el -f ert-run-tests-batch-and-exit`
 
 ## Troubleshooting

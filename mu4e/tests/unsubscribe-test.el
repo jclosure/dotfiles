@@ -65,3 +65,19 @@
       (should (equal (nth 0 sent) "leave+x@list.example"))
       (should (equal (nth 1 sent) "Remove me"))
       (should (string-prefix-p "bye" (nth 2 sent))))))
+
+(ert-deftest sender-query-skips-unsynced-and-excluded-maildirs ()
+  (should (equal (my/mu4e-sender-query "news@list.example")
+                 "from:news@list.example AND NOT maildir:\"/[Gmail]/All Mail\""))
+  (should (equal (my/mu4e-sender-query "news@list.example" "/[Gmail]/Trash")
+                 (concat "from:news@list.example AND NOT maildir:\"/[Gmail]/Trash\""
+                         " AND NOT maildir:\"/[Gmail]/All Mail\""))))
+
+(ert-deftest sender-address-handles-both-contact-formats ()
+  ;; mu4e 1.10 contacts are plists; older ones are (NAME . EMAIL).
+  (cl-letf (((symbol-function 'mu4e-message-field)
+             (lambda (msg _field) msg)))
+    (should (equal (my/mu4e-sender-address '((:email "a@x.example" :name "A")))
+                   "a@x.example"))
+    (should (equal (my/mu4e-sender-address '(("A" . "a@x.example")))
+                   "a@x.example"))))
