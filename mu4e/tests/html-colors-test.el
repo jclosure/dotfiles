@@ -182,12 +182,42 @@
       (should (equal (my/mail-background-at 3) "#4b3b2f"))
       (should-not (my/mail-background-at 2)))))
 
-(ert-deftest mail-suspicious-link-warning-is-one-column ()
+(ert-deftest mail-invisible-chars-are-stripped ()
   (with-temp-buffer
-    (insert "link" (propertize "⚠️" 'help-echo "suspicious") " more")
-    (my/mail-text-style-warnings (point-min) (point-max))
-    (should (equal (buffer-string) "link⚠ more"))
+    (insert "link" (propertize "⚠️" 'help-echo "suspicious") " more
+"
+            "eBay I‌nc., 2‌025 H‌amilton
+"
+            "pad ͏‌ ͏‌ end­﻿
+"
+            "dev 👨‍💻 ok‍!
+")
+    (my/mail-strip-invisible-chars (point-min) (point-max))
+    (should (equal (buffer-string)
+                   (concat "link⚠ more
+"
+                           "eBay Inc., 2025 Hamilton
+"
+                           "pad   end
+"
+                           "dev 👨‍💻 ok!
+")))
+    ;; shr's warning keeps its explanation.
     (should (get-text-property 5 'help-echo))))
+
+(ert-deftest mail-uncolored-line-inside-panel-joins-it ()
+  (with-temp-buffer
+    (let ((n '(:background "#313244")))
+      (insert (propertize "top line" 'face n) "
+"
+              "plain heading
+"
+              (propertize "bottom" 'face n) "
+")
+      (my/mail-paint-panels (point-min) (point-max))
+      (goto-char (point-min)) (forward-line 1)
+      (should (equal (my/mail-background-at (point)) "#313244"))
+      (should (equal (my/mail-background-at (+ (point) 5)) "#313244")))))
 
 (ert-deftest mail-url-numbers-take-panel-padding ()
   (with-temp-buffer

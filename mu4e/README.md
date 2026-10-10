@@ -202,8 +202,20 @@ each colored section off into a panel:
 - mu4e's link numbers (`[1]` after a URL in the text, added after shr lays out
   the mail) take their width out of the line's trailing padding, so the line
   still ends at the panel's edge
-- shr's suspicious-link warning (`⚠` plus the emoji selector U+FE0F) is reduced
-  to the plain one-column `⚠`; terminals draw the emoji form two columns wide
+- characters a browser doesn't draw are removed: zero-width spaces and
+  non-joiners (preheader padding, anti-autolink breaks like `I‌nc.`), the
+  combining grapheme joiner, soft hyphens, word joiners, BOMs and emoji
+  variation selectors. Terminal Emacs counts most as zero columns but draws a
+  one-column placeholder (stray `_`), so lines holding them stuck out past
+  their panel; U+FE0F makes the terminal draw an emoji wider than Emacs counts
+  (this also covers shr's `⚠` suspicious-link warning). A zero-width joiner
+  stays where it joins emoji
+- newline characters carry no face: shr left cell colors on some line ends, and
+  a terminal paints that position as one more cell, so those lines looked a
+  column wider
+- text with no background of its own joins the panel around it, and once a
+  mail has panels, other plain text sits on the neutral surface (a browser's
+  white page) instead of the darker theme background
 - an image without alt text shows as `[image]` instead of shr's bare `*` (a
   linked one stays a link), and tracking pixels (1-2 px images a browser
   doesn't show either) show as nothing
