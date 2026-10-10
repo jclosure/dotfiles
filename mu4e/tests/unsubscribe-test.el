@@ -110,3 +110,32 @@
     (should (equal moved '(42 "/[Gmail]/Trash" "-N")))
     (should (equal (plist-get (alist-get 'trash mu4e-marks) :prompt) "dtrash"))
     (should mu4e-trash-without-flag)))
+
+;; The headers-list emoji fix lives right after the trash block.
+(let ((init (expand-file-name "../../emacs-ide/.emacs.d/init.el"
+                              (file-name-directory load-file-name))))
+  (with-temp-buffer
+    (insert-file-contents init)
+    (goto-char (point-min))
+    (search-forward ";;; --- Emoji width in the terminal headers list")
+    (let ((start (match-beginning 0)))
+      (search-forward ";;; --- end emoji width")
+      (eval-region start (match-beginning 0)))))
+
+(ert-deftest headers-drop-emoji-selector-in-terminal ()
+  (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _) nil)))
+    (let* ((msg (list :subject "\u26a0\ufe0f Your Gmail storage is 71% full"
+                      :from '((:email "g@x.example" :name "Google \u2764\ufe0f"))
+                      :to '(("Old style\ufe0f" . "o@x.example"))
+                      :docid 7))
+           (out (car (car (my/mu4e-strip-emoji-selector-list (list (list msg)))))))
+      (should (equal (plist-get out :subject) "\u26a0 Your Gmail storage is 71% full"))
+      (should (equal (plist-get (car (plist-get out :from)) :name) "Google \u2764"))
+      (should (equal (car (car (plist-get out :to))) "Old style"))
+      (should (equal (plist-get out :docid) 7))
+      ;; The message from mu is left alone.
+      (should (string-search "\ufe0f" (plist-get msg :subject)))))
+  (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _) t)))
+    (should (string-search "\ufe0f" (plist-get (my/mu4e-strip-emoji-selector
+                                                 (list :subject "\u26a0\ufe0f"))
+                                                :subject)))))
