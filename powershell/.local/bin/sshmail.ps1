@@ -28,10 +28,25 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Turn off the terminal modes remote Emacs turns on (mouse reporting, bracketed
+# paste, keyboard modes) when ssh exits.  If the connection drops while Emacs
+# is running, Emacs never turns them off, and the pane (Windows Terminal or
+# herdr) keeps sending clicks as escape sequences to a shell that ignores
+# them.  Same string as $TermModesOff / reset-term in profile.ps1; this script
+# runs without the profile, so it has its own copy.
+function Reset-TerminalModes {
+    if ([Console]::IsOutputRedirected) { return }
+    $e = [char]27
+    [Console]::Write("$e[?1000l$e[?1002l$e[?1003l$e[?1005l$e[?1006l$e[?1015l$e[?1016l$e[?9l" +
+        "$e[?2004l$e[?1l$e>$e[<99u$e[=0;1u$e[>4;0m$e[?25h")
+}
+
 function Invoke-SshPlain {
     param([string[]] $ExtraSshArg = @())
     & ssh.exe -o ServerAliveInterval=15 -o ServerAliveCountMax=3 @ExtraSshArg $HostName @Command
-    exit $LASTEXITCODE
+    $code = $LASTEXITCODE
+    Reset-TerminalModes
+    exit $code
 }
 
 function Get-Gpg4winGpgconf {
@@ -132,6 +147,7 @@ try {
     $mailExitCode = $LASTEXITCODE
 }
 finally {
+    Reset-TerminalModes
     if ($proxyProcess -and -not $proxyProcess.HasExited) {
         Stop-Process -Id $proxyProcess.Id -Force -ErrorAction SilentlyContinue
     }
