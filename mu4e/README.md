@@ -1,5 +1,16 @@
 # mu4e helpers
 
+Mail is Gmail, read in Emacs with mu4e, in a terminal:
+
+```text
+Gmail --IMAP, mbsync--> ~/Mail on a mail host --mu index--> mu4e in Emacs
+```
+
+A **mail host** is a Mac or Linux machine that keeps a full copy of the
+mailbox in `~/Mail` (see [Remote mail-host setup](#remote-mail-host-setup)).
+Any machine, Windows included, can read from it over SSH, with links opening
+in the local browser.
+
 This stow package installs one mail-check command per shell:
 
 - `check-mail.sh` for Unix/macOS/Linux
@@ -59,15 +70,30 @@ The URL opener listens only on `127.0.0.1`; it is not exposed to the LAN.
 
 Prereqs on the remote mail host:
 
-- Emacs + mu4e configured
-- `curl` available, used by Emacs to post URLs to the forwarded opener
+- Emacs + mu4e configured (`stow emacs-ide`)
+- mu and isync: `sudo apt install maildir-utils mu4e isync` on Linux,
+  `brew install mu isync` on a Mac
+- `curl` available, used by Emacs to post URLs to the forwarded opener and
+  for one-click unsubscribe
 - this dotfiles repo checked out at `~/dotfiles`
 
-Install on the remote mail host:
+Install on the remote mail host. The Gmail app password goes in a private
+file, never in this repo (see [mbsync](../mbsync/README.md)):
 
 ```sh
+mkdir -p ~/.config/mbsync
+( umask 077; printf '%s' 'xxxx xxxx xxxx xxxx' > ~/.config/mbsync/gmail-password )
 cd ~/dotfiles
-stow mu4e
+stow mbsync mu4e
+mbsync -l gmail          # logs in and lists folders, changes nothing
+```
+
+First sync and index:
+
+```sh
+mbsync -a
+mu init --maildir ~/Mail --my-address you@gmail.com
+mu index
 ```
 
 That creates:
@@ -149,6 +175,26 @@ The Emacs config in `emacs-ide` does three things for this setup:
    `shr-url`, so link text like `View messages` works even though the literal
    URL is not visible.
 3. If the forwarded opener is unavailable, it falls back to SSH-back/OSC52.
+
+## Keys
+
+mu4e's own keys work as usual; these matter most. `M-s`, `M-u` and `W` are ours.
+
+| Key | Does |
+|---|---|
+| `d` | Trash: moves to Gmail's Trash, which Gmail empties after 30 days |
+| `r` | Archive (refile to All Mail): leaves the Inbox, kept for good |
+| `D` | Delete. In Trash or Spam this deletes for good; elsewhere Gmail normally just archives it |
+| `x` / `U` | Execute the marks / unmark everything |
+| `g` | Pick a link in the message to open |
+| `M-s` | Show all mail from this message's sender ([details](#unsubscribe-and-trash-all)) |
+| `\` | Back to the previous search |
+| `M-u` | Unsubscribe, then mark all of the sender's mail for trash ([details](#unsubscribe-and-trash-all)) |
+| `W` | Open this message in Gmail ([details](#open-in-webmail)) |
+
+mu4e syncs with Gmail every 5 minutes (`U` on its main screen syncs now).
+Each mail host syncs on its own, so a change made on one shows up on another
+after both have synced: up to about 10 minutes.
 
 ## HTML email readability
 

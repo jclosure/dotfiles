@@ -254,7 +254,12 @@ Getting around herdr:
 |---|---|
 | **F1**, or **prefix, then `a`** | Back to the dashboard. |
 | **Alt+1…9** | Jump straight to agent N. |
-| **prefix, then Alt+j / Alt+k** | Next / previous agent. |
+| **prefix, then Alt+j / Alt+k**, or **Alt+Shift+↓ / ↑** | Next / previous agent. |
+| **Shift+←/↓/↑/→** | Move to the pane in that direction, windmove-style as in Emacs (replaces herdr's default prefix, then `h/j/k/l`). |
+| **prefix, then `w`** | Opens the workspace list; ↑↓ or Ctrl+P / Ctrl+N move in it. |
+| **prefix, then Shift+R** | Reloads the config (`herd setup` already does this). |
+
+Plain `herdr` attaches to the running session without opening the dashboard.
 
 The prefix is herdr's default, **Ctrl+B**. The top bar shows `F1 ◂ shepherd`
 as a reminder.
@@ -262,6 +267,22 @@ as a reminder.
 > **Careful:** every line typed into the dashboard that isn't a command starts
 > a real agent. Never script input into it with `herdr pane send-text`. To
 > restart it, press Ctrl+C in its pane and run `herd dash`.
+
+### Scripting herdr
+
+The `herdr` command controls the running session from a shell or a script:
+
+```sh
+herdr workspace list                 # workspaces
+herdr agent list                     # agents and their state
+herdr agent read <id>                # an agent's recent output
+herdr agent prompt <id> "..."        # give an agent a prompt
+herdr agent wait <id> --until done   # wait for a state (repeat --until)
+herdr pane read <id>                 # any pane's output
+herdr server reload-config           # what herd setup does after writing config
+```
+
+Every group (`workspace`, `tab`, `pane`, `agent`) has `--help`.
 
 ---
 
