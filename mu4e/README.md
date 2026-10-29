@@ -291,6 +291,7 @@ Regression tests (no live mailbox or mu4e installation required):
 
 ```sh
 emacs --batch -Q -l mu4e/tests/html-colors-test.el -f ert-run-tests-batch-and-exit
+emacs --batch -Q -l mu4e/tests/format-controls-test.el -f ert-run-tests-batch-and-exit
 ```
 
 ## Unsubscribe and trash all
