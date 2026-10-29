@@ -178,7 +178,7 @@ The Emacs config in `emacs-ide` does three things for this setup:
 
 ## Keys
 
-mu4e's own keys work as usual; these matter most. `M-s`, `M-u` and `W` are ours.
+mu4e's own keys work as usual; these matter most. `M-s`, `M-u`, `W` and `I` are ours.
 
 | Key | Does |
 |---|---|
@@ -191,6 +191,7 @@ mu4e's own keys work as usual; these matter most. `M-s`, `M-u` and `W` are ours.
 | `\` | Back to the previous search |
 | `M-u` | Unsubscribe, then mark all of the sender's mail for trash ([details](#unsubscribe-and-trash-all)) |
 | `W` | Open this message in Gmail ([details](#open-in-webmail)) |
+| `I` | Redraw this message with its remote images (they're blocked by default) |
 
 mu4e syncs with Gmail every 5 minutes (`U` on its main screen syncs now).
 Each mail host syncs on its own, so a change made on one shows up on another
