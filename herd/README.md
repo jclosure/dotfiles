@@ -233,13 +233,13 @@ history and versions, they should differ only in the
  blog · 1
 ›  1 ● homepage-redesign     3m  2h  claude   Homepage redesign
  ...
-› write a task · #N jump · ↑↓ enter · /who /where /x · ? help
+› write a task · #N jump · ↑↓/C-p C-n enter · /who /where /x · ? help
 ```
 
 | Input | Does |
 |---|---|
 | a task, then Enter | Starts a new agent of kind **who** in directory **where**, in its own tab, and gives it the task. |
-| ↑ / ↓, then Enter | Selects an agent and jumps to it. |
+| ↑ / ↓ or Ctrl+P / Ctrl+N, then Enter | Selects an agent and jumps to it. |
 | `<number>` Enter or `#<number>` Enter | Jumps to agent N. |
 | Tab | Cycles **where** through directories that agents already use. |
 | `/who <kind>` | Sets the agent kind: `claude`, `codex`, `pi`, … |

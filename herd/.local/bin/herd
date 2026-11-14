@@ -550,7 +550,7 @@ def render(state, ui):
     footer.append(f"{GREY}{'─' * cols}{RESET}")
     buf = ui["input"]
     shown = buf if len(buf) < cols - 4 else "…" + buf[-(cols - 5):]
-    placeholder = f"{GREY}write a task · #N jump · ↑↓ enter · /who /where /x · ? help{RESET}"
+    placeholder = f"{GREY}write a task · #N jump · ↑↓/C-p C-n enter · /who /where /x · ? help{RESET}"
     footer.append(f"{MAUVE}›{RESET} {shown if buf else placeholder}")
 
     room = max(1, lines_avail - len(out) - len(footer))
@@ -739,6 +739,7 @@ class Keys:
     @staticmethod
     def _simple(ch):
         return {"\r": "enter", "\n": "enter", "\x08": "backspace", "\x7f": "backspace",
+                "\x10": "up", "\x0e": "down",
                 "\x17": "ctrl+w", "\x1b": "esc", "\t": "tab", "\x03": "ctrl+c"}.get(
                     ch, ch if ch.isprintable() else "")
 
